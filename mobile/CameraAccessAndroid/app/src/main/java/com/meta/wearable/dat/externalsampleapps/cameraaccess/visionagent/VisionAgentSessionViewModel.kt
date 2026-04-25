@@ -108,17 +108,16 @@ class VisionAgentSessionViewModel(application: Application) : AndroidViewModel(a
             val current = _uiState.value
             val userText = current.userTranscript.trim()
             val assistantText = current.assistantTranscript.trim()
-            if (userText.isEmpty() && assistantText.isEmpty()) {
-                return@onTurnComplete
+            if (userText.isNotEmpty() || assistantText.isNotEmpty()) {
+                val updatedHistory =
+                    (current.transcriptHistory + VisionAgentTranscriptTurn(userText, assistantText))
+                        .takeLast(6)
+                _uiState.value = current.copy(
+                    userTranscript = "",
+                    assistantTranscript = "",
+                    transcriptHistory = updatedHistory,
+                )
             }
-            val updatedHistory =
-                (current.transcriptHistory + VisionAgentTranscriptTurn(userText, assistantText))
-                    .takeLast(6)
-            _uiState.value = current.copy(
-                userTranscript = "",
-                assistantTranscript = "",
-                transcriptHistory = updatedHistory,
-            )
         }
         visionAgentService.onDisconnected = { reason ->
             if (_uiState.value.isVisionAgentActive) {
