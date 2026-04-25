@@ -1,8 +1,12 @@
 import numpy as np
+from collections import deque
 from dataclasses import dataclass
 from typing import Optional
 
 ALERT_NO_PULSE = "no_pulse"
+EMA_ALPHA = 0.3        # BPM smoothing weight — lower is smoother, ~1s lag at 30fps
+CONF_WINDOW = 60       # sliding window length in compute() calls
+CONF_BAD_FRACTION = 0.7  # fraction of window that must be bad to fire the alert
 
 
 @dataclass
@@ -14,13 +18,14 @@ class HeartRateResult:
 
 class SignalProcessor:
     def __init__(self, fps: float = 30.0, buffer_size: int = 150,
-                 min_freq: float = 1.0, max_freq: float = 2.0):
+                 min_freq: float = 1.0, max_freq: float = 2.0,
+                 conf_window: int = CONF_WINDOW):
         self.fps = fps
         self.buffer_size = buffer_size
         self.min_freq = min_freq
         self.max_freq = max_freq
-        self._no_signal_count = 0
-        self._no_signal_threshold = int(10 * fps)
+        self._bpm_ema: Optional[float] = None
+        self._conf_window: deque = deque(maxlen=conf_window)
 
     def compute(self, buffer: np.ndarray) -> HeartRateResult:
         if buffer.ndim != 4 or len(buffer) < self.buffer_size:
@@ -36,20 +41,27 @@ class SignalProcessor:
         bandpass[~mask] = 0
         peak_idx = int(np.argmax(bandpass))
         peak_freq = frequencies[peak_idx]
-        bpm = round(float(peak_freq * 60), 1)
+        raw_bpm = float(peak_freq * 60)
 
         peak_power = bandpass[peak_idx]
-        # Out-of-band power is the true noise floor — everything the signal competes against
         out_of_band = avg_spectrum[~mask]
         noise = float(out_of_band.mean()) if len(out_of_band) > 0 else 0.0
         noise = noise if noise > 0 else 1e-10
-        # SNR / 5.0 calibrated for real video: clean pulse → confidence > 0.5, flat noise → confidence < 0.3
         confidence = round(min(float(peak_power / noise) / 5.0, 1.0), 3)
 
-        if bpm < 40 or bpm > 180 or confidence < 0.3:
-            self._no_signal_count += 1
+        # EMA smoothing — prevents BPM jumping by full FFT bin widths frame-to-frame
+        if self._bpm_ema is None:
+            self._bpm_ema = raw_bpm
         else:
-            self._no_signal_count = 0
+            self._bpm_ema = EMA_ALPHA * raw_bpm + (1 - EMA_ALPHA) * self._bpm_ema
+        bpm = round(self._bpm_ema, 1)
 
-        alert = ALERT_NO_PULSE if self._no_signal_count >= self._no_signal_threshold else None
+        # Sliding window alert — requires sustained poor signal, not just consecutive frames.
+        # One good frame in a run of bad ones no longer resets the counter.
+        is_bad = raw_bpm < 40 or raw_bpm > 180 or confidence < 0.3
+        self._conf_window.append(is_bad)
+        window_full = len(self._conf_window) == self._conf_window.maxlen
+        bad_fraction = sum(self._conf_window) / len(self._conf_window)
+        alert = ALERT_NO_PULSE if window_full and bad_fraction >= CONF_BAD_FRACTION else None
+
         return HeartRateResult(bpm=bpm, confidence=confidence, alert=alert)

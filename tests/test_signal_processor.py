@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from server.signal_processor import SignalProcessor, HeartRateResult
+from server.signal_processor import SignalProcessor, HeartRateResult, CONF_WINDOW
 
 
 def make_buffer(fps: float, n: int, target_hz: float, h: int = 8, w: int = 15) -> np.ndarray:
@@ -57,11 +57,24 @@ def test_returns_zero_for_incomplete_buffer():
 
 
 def test_no_pulse_alert_after_sustained_low_confidence():
+    # conf_window=1 so a single bad reading fills the window immediately
     noise = np.random.rand(150, 8, 15, 3).astype(np.float32) * 0.001
-    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
-    p._no_signal_threshold = 1  # trigger immediately
+    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0, conf_window=1)
     result = p.compute(noise)
     assert result.alert == "no_pulse"
+
+
+def test_no_pulse_not_triggered_by_single_bad_frame():
+    # One bad frame in a window of many should not trigger the alert
+    buf = make_buffer(fps=30.0, n=150, target_hz=1.2)
+    noise = np.random.rand(150, 8, 15, 3).astype(np.float32) * 0.001
+    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
+    # Fill window with good readings
+    for _ in range(CONF_WINDOW - 1):
+        p.compute(buf)
+    # One bad reading at the end — below the 70% threshold
+    result = p.compute(noise)
+    assert result.alert is None
 
 
 def test_no_alert_for_clean_signal():
@@ -69,6 +82,17 @@ def test_no_alert_for_clean_signal():
     p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
     result = p.compute(buf)
     assert result.alert is None
+
+
+def test_bpm_smoothing_does_not_jump():
+    # Alternate between two valid frequencies — EMA should not jump the full bin width
+    buf_72 = make_buffer(fps=30.0, n=150, target_hz=1.2)   # 72 BPM
+    buf_84 = make_buffer(fps=30.0, n=150, target_hz=1.4)   # 84 BPM
+    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
+    p.compute(buf_72)
+    result = p.compute(buf_84)
+    # Without EMA this would jump straight to 84; with EMA it stays between
+    assert result.bpm < 84.0
 
 
 def test_result_is_heartrate_result_dataclass():

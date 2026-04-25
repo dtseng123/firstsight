@@ -11,6 +11,7 @@ BUFFER_SIZE = 150
 ROI_W, ROI_H = 320, 240
 H_PAD, W_PAD = 60, 40
 MOTION_THRESHOLD = 5.0
+MOTION_GRACE_FRAMES = 10  # brief motion keeps buffer; beyond this, buffer is stale and cleared
 
 FREQ_RANGES = {
     "adult": (1.0, 2.0),
@@ -45,6 +46,7 @@ class HeartRatePipeline:
         self.buffers: dict[int, deque] = defaultdict(lambda: deque(maxlen=BUFFER_SIZE))
         self.signal_processors: dict[int, SignalProcessor] = {}
         self.prev_rois: dict[int, np.ndarray] = {}
+        self._motion_streak: dict[int, int] = defaultdict(int)
 
     def _crop_roi(self, frame: np.ndarray, bbox: tuple[int, int, int, int]) -> Optional[np.ndarray]:
         x1, y1, x2, y2 = bbox
@@ -91,10 +93,21 @@ class HeartRatePipeline:
 
         for x1, y1, x2, y2, track_id in tracks:
             roi = self._crop_roi(frame, (x1, y1, x2, y2))
-            if roi is None or self._motion_too_high(track_id, roi):
+            if roi is None:
                 continue
 
-            gauss = build_gaussian_pyramid(roi, PYRAMID_LEVELS + 1)[PYRAMID_LEVELS]
+            if self._motion_too_high(track_id, roi):
+                self._motion_streak[track_id] += 1
+                if self._motion_streak[track_id] > MOTION_GRACE_FRAMES:
+                    # Sustained movement — buffer contains a mix of before/after motion frames
+                    self.buffers[track_id].clear()
+                continue
+
+            self._motion_streak[track_id] = 0
+
+            # Blur removes JPEG block artifacts before pyramid decomposition
+            roi_smooth = cv2.GaussianBlur(roi, (3, 3), 0)
+            gauss = build_gaussian_pyramid(roi_smooth, PYRAMID_LEVELS + 1)[PYRAMID_LEVELS]
             self.buffers[track_id].append(gauss)
 
             if len(self.buffers[track_id]) == BUFFER_SIZE:
