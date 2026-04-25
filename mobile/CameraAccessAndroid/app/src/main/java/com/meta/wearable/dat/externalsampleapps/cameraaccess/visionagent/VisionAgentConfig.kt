@@ -12,6 +12,25 @@ object VisionAgentConfig {
     val userName: String
         get() = SettingsManager.backendUserName.trim()
 
+    data class RuntimeConfig(
+        val speechPipeline: String,
+        val geminiLlmModel: String,
+        val fastWhisperModelSize: String,
+        val fastWhisperDevice: String,
+        val pipelineTurnDelayMs: Int,
+        val backendTtsEnabled: Boolean,
+    )
+
+    val runtimeConfig: RuntimeConfig
+        get() = RuntimeConfig(
+            speechPipeline = SettingsManager.backendSpeechPipeline,
+            geminiLlmModel = SettingsManager.backendGeminiModel,
+            fastWhisperModelSize = SettingsManager.backendFastWhisperModelSize,
+            fastWhisperDevice = SettingsManager.backendFastWhisperDevice,
+            pipelineTurnDelayMs = SettingsManager.backendTurnDelayMs,
+            backendTtsEnabled = SettingsManager.backendTtsEnabled,
+        )
+
     val isConfigured: Boolean
         get() = baseUrl.isNotBlank() && !baseUrl.contains("YOUR_MAC_HOSTNAME")
 

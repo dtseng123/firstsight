@@ -38,6 +38,30 @@ object SettingsManager {
         get() = prefs.getString("backendUserName", null) ?: Secrets.pythonBackendUserName
         set(value) = prefs.edit().putString("backendUserName", value).apply()
 
+    var backendSpeechPipeline: String
+        get() = prefs.getString("backendSpeechPipeline", "fast_whisper_pipeline") ?: "fast_whisper_pipeline"
+        set(value) = prefs.edit().putString("backendSpeechPipeline", value).apply()
+
+    var backendGeminiModel: String
+        get() = prefs.getString("backendGeminiModel", "gemini-3-flash-preview") ?: "gemini-3-flash-preview"
+        set(value) = prefs.edit().putString("backendGeminiModel", value).apply()
+
+    var backendFastWhisperModelSize: String
+        get() = prefs.getString("backendFastWhisperModelSize", "base") ?: "base"
+        set(value) = prefs.edit().putString("backendFastWhisperModelSize", value).apply()
+
+    var backendFastWhisperDevice: String
+        get() = prefs.getString("backendFastWhisperDevice", "cpu") ?: "cpu"
+        set(value) = prefs.edit().putString("backendFastWhisperDevice", value).apply()
+
+    var backendTurnDelayMs: Int
+        get() = prefs.getInt("backendTurnDelayMs", 1200)
+        set(value) = prefs.edit().putInt("backendTurnDelayMs", value).apply()
+
+    var backendTtsEnabled: Boolean
+        get() = prefs.getBoolean("backendTtsEnabled", true)
+        set(value) = prefs.edit().putBoolean("backendTtsEnabled", value).apply()
+
     var openClawHost: String
         get() = prefs.getString("openClawHost", null) ?: Secrets.openClawHost
         set(value) = prefs.edit().putString("openClawHost", value).apply()

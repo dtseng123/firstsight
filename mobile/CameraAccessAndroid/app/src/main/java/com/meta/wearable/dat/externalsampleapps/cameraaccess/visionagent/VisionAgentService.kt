@@ -69,6 +69,14 @@ class VisionAgentService {
             put("user_name", VisionAgentConfig.userName)
             put("call_type", "default")
             put("start_agent_session", true)
+            put("runtime_config", JSONObject().apply {
+                put("speech_pipeline", VisionAgentConfig.runtimeConfig.speechPipeline)
+                put("gemini_llm_model", VisionAgentConfig.runtimeConfig.geminiLlmModel)
+                put("fast_whisper_model_size", VisionAgentConfig.runtimeConfig.fastWhisperModelSize)
+                put("fast_whisper_device", VisionAgentConfig.runtimeConfig.fastWhisperDevice)
+                put("pipeline_turn_delay_ms", VisionAgentConfig.runtimeConfig.pipelineTurnDelayMs)
+                put("backend_tts_enabled", VisionAgentConfig.runtimeConfig.backendTtsEnabled)
+            })
         }
         val request = Request.Builder()
             .url(sessionsUrl)

@@ -53,6 +53,12 @@ fun SettingsScreen(
     var backendBaseUrl by remember { mutableStateOf(SettingsManager.backendBaseUrl) }
     var backendUserId by remember { mutableStateOf(SettingsManager.backendUserId) }
     var backendUserName by remember { mutableStateOf(SettingsManager.backendUserName) }
+    var backendSpeechPipeline by remember { mutableStateOf(SettingsManager.backendSpeechPipeline) }
+    var backendGeminiModel by remember { mutableStateOf(SettingsManager.backendGeminiModel) }
+    var backendFastWhisperModelSize by remember { mutableStateOf(SettingsManager.backendFastWhisperModelSize) }
+    var backendFastWhisperDevice by remember { mutableStateOf(SettingsManager.backendFastWhisperDevice) }
+    var backendTurnDelayMs by remember { mutableStateOf(SettingsManager.backendTurnDelayMs.toString()) }
+    var backendTtsEnabled by remember { mutableStateOf(SettingsManager.backendTtsEnabled) }
     var openClawHost by remember { mutableStateOf(SettingsManager.openClawHost) }
     var openClawPort by remember { mutableStateOf(SettingsManager.openClawPort.toString()) }
     var openClawHookToken by remember { mutableStateOf(SettingsManager.openClawHookToken) }
@@ -71,6 +77,12 @@ fun SettingsScreen(
         SettingsManager.backendBaseUrl = backendBaseUrl.trim()
         SettingsManager.backendUserId = backendUserId.trim()
         SettingsManager.backendUserName = backendUserName.trim()
+        SettingsManager.backendSpeechPipeline = backendSpeechPipeline
+        SettingsManager.backendGeminiModel = backendGeminiModel.trim()
+        SettingsManager.backendFastWhisperModelSize = backendFastWhisperModelSize
+        SettingsManager.backendFastWhisperDevice = backendFastWhisperDevice
+        backendTurnDelayMs.trim().toIntOrNull()?.let { SettingsManager.backendTurnDelayMs = it }
+        SettingsManager.backendTtsEnabled = backendTtsEnabled
         SettingsManager.openClawHost = openClawHost.trim()
         openClawPort.trim().toIntOrNull()?.let { SettingsManager.openClawPort = it }
         SettingsManager.openClawHookToken = openClawHookToken.trim()
@@ -93,6 +105,12 @@ fun SettingsScreen(
         backendBaseUrl = SettingsManager.backendBaseUrl
         backendUserId = SettingsManager.backendUserId
         backendUserName = SettingsManager.backendUserName
+        backendSpeechPipeline = SettingsManager.backendSpeechPipeline
+        backendGeminiModel = SettingsManager.backendGeminiModel
+        backendFastWhisperModelSize = SettingsManager.backendFastWhisperModelSize
+        backendFastWhisperDevice = SettingsManager.backendFastWhisperDevice
+        backendTurnDelayMs = SettingsManager.backendTurnDelayMs.toString()
+        backendTtsEnabled = SettingsManager.backendTtsEnabled
         openClawHost = SettingsManager.openClawHost
         openClawPort = SettingsManager.openClawPort.toString()
         openClawHookToken = SettingsManager.openClawHookToken
@@ -182,6 +200,91 @@ fun SettingsScreen(
                 label = "Display Name",
                 placeholder = "DroopDetection Demo",
             )
+            Text(
+                "These values are sent at session bootstrap so you can change the backend speech stack without restarting the Python server.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SectionHeader("Backend Speech Mode")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ModeButton(
+                    label = "Fast Whisper",
+                    selected = backendSpeechPipeline == "fast_whisper_pipeline",
+                    onClick = { backendSpeechPipeline = "fast_whisper_pipeline" },
+                    modifier = Modifier.weight(1f),
+                )
+                ModeButton(
+                    label = "Realtime",
+                    selected = backendSpeechPipeline == "realtime",
+                    onClick = { backendSpeechPipeline = "realtime" },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            MonoTextField(
+                value = backendGeminiModel,
+                onValueChange = { backendGeminiModel = it },
+                label = "Gemini Text Model",
+                placeholder = "gemini-3-flash-preview",
+            )
+            SectionHeader("Fast Whisper")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf("tiny", "base", "small").forEach { size ->
+                    ModeButton(
+                        label = size,
+                        selected = backendFastWhisperModelSize == size,
+                        onClick = { backendFastWhisperModelSize = size },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ModeButton(
+                    label = "CPU",
+                    selected = backendFastWhisperDevice == "cpu",
+                    onClick = { backendFastWhisperDevice = "cpu" },
+                    modifier = Modifier.weight(1f),
+                )
+                ModeButton(
+                    label = "CUDA",
+                    selected = backendFastWhisperDevice == "cuda",
+                    onClick = { backendFastWhisperDevice = "cuda" },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            MonoTextField(
+                value = backendTurnDelayMs,
+                onValueChange = { backendTurnDelayMs = it },
+                label = "Turn Delay (ms)",
+                placeholder = "1200",
+                keyboardType = KeyboardType.Number,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Backend TTS", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "If off, Android local TTS speaks backend text instead of backend PCM audio.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = backendTtsEnabled,
+                    onCheckedChange = { backendTtsEnabled = it },
+                )
+            }
 
             SectionHeader("System Prompt")
             OutlinedTextField(
