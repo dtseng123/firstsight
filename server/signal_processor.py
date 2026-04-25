@@ -2,6 +2,8 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Optional
 
+ALERT_NO_PULSE = "no_pulse"
+
 
 @dataclass
 class HeartRateResult:
@@ -21,10 +23,10 @@ class SignalProcessor:
         self._no_signal_threshold = int(10 * fps)
 
     def compute(self, buffer: np.ndarray) -> HeartRateResult:
-        if len(buffer) < self.buffer_size:
+        if buffer.ndim != 4 or len(buffer) < self.buffer_size:
             return HeartRateResult(bpm=0.0, confidence=0.0, alert=None)
 
-        fft_result = np.fft.fft(buffer, axis=0)
+        fft_result = np.fft.fft(buffer, axis=0, n=self.buffer_size)
         avg_spectrum = np.abs(fft_result).mean(axis=(1, 2, 3))
 
         frequencies = (self.fps * np.arange(self.buffer_size)) / self.buffer_size
@@ -48,5 +50,5 @@ class SignalProcessor:
         else:
             self._no_signal_count = 0
 
-        alert = "no_pulse" if self._no_signal_count >= self._no_signal_threshold else None
+        alert = ALERT_NO_PULSE if self._no_signal_count >= self._no_signal_threshold else None
         return HeartRateResult(bpm=bpm, confidence=confidence, alert=alert)
