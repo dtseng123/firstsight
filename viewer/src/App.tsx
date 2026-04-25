@@ -61,8 +61,22 @@ function App() {
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [selectedSession, setSelectedSession] = useState<SessionStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState<boolean>(document.visibilityState === "visible");
 
   useEffect(() => {
+    const onVisibilityChange = () => {
+      setIsVisible(document.visibilityState === "visible");
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadSessions = async () => {
@@ -80,15 +94,15 @@ function App() {
     };
 
     void loadSessions();
-    const interval = window.setInterval(() => void loadSessions(), 1500);
+    const interval = window.setInterval(() => void loadSessions(), 5000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [isVisible]);
 
   useEffect(() => {
-    if (!selectedSessionId) {
+    if (!selectedSessionId || !isVisible) {
       setSelectedSession(null);
       return;
     }
@@ -110,12 +124,12 @@ function App() {
     };
 
     void loadSession();
-    const interval = window.setInterval(() => void loadSession(), 1000);
+    const interval = window.setInterval(() => void loadSession(), 2500);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [selectedSessionId]);
+  }, [selectedSessionId, isVisible]);
 
   const selectedTurn =
     selectedSession?.transcript_turns[selectedSession.transcript_turns.length - 1];
