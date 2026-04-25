@@ -40,6 +40,9 @@ class SessionRecord:
     transcript_turns: deque[dict[str, str]] = field(default_factory=lambda: deque(maxlen=6))
     processor_signals: dict[str, dict[str, object]] = field(default_factory=dict)
     debug_events: deque[dict[str, object]] = field(default_factory=lambda: deque(maxlen=40))
+    latest_preview_frame: bytes | None = None
+    latest_preview_mime_type: str = "image/jpeg"
+    latest_preview_updated_at: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -69,6 +72,8 @@ class SessionRecord:
             "transcript_turns": list(self.transcript_turns),
             "processor_signals": dict(self.processor_signals),
             "debug_events": list(self.debug_events),
+            "preview_frame_available": self.latest_preview_frame is not None,
+            "preview_frame_updated_at": self.latest_preview_updated_at,
         }
 
 
@@ -264,6 +269,23 @@ class SessionManager:
             if record is None:
                 return None
             record.processor_signals[processor_name] = payload
+            record.last_event_at = utc_now_iso()
+            return record
+
+    def update_preview_frame(
+        self,
+        session_id: str,
+        frame_bytes: bytes,
+        *,
+        mime_type: str = "image/jpeg",
+    ) -> SessionRecord | None:
+        with self._lock:
+            record = self._sessions.get(session_id)
+            if record is None:
+                return None
+            record.latest_preview_frame = frame_bytes
+            record.latest_preview_mime_type = mime_type
+            record.latest_preview_updated_at = utc_now_iso()
             record.last_event_at = utc_now_iso()
             return record
 

@@ -3,8 +3,21 @@ from collections.abc import Sequence
 from .config import Settings, get_settings
 
 
-def _build_processors(settings: Settings) -> list[object]:
+def _build_processors(settings: Settings, *, session_id: str | None = None) -> list[object]:
     processors: list[object] = []
+    if settings.enable_pose_processor:
+        from .processors.pose_overlay import PoseOverlayProcessor
+
+        processors.append(
+            PoseOverlayProcessor(
+                session_id=session_id or "preview",
+                model_path=settings.pose_model_path,
+                conf_threshold=settings.pose_conf_threshold,
+                device=settings.pose_device,
+                fps=settings.processor_fps,
+                enable_hand_tracking=settings.pose_enable_hand_tracking,
+            )
+        )
     if settings.enable_face_droop_processor:
         from .processors.face_droop import FaceDroopProcessor
 

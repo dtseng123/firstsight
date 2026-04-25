@@ -99,7 +99,7 @@ h1 {
 }
 
 .content-grid {
-  grid-template-columns: 1.15fr 1fr 1.2fr;
+  grid-template-columns: 1.1fr 1fr 1fr 1.15fr;
 }
 
 .panel,
@@ -140,6 +140,21 @@ h1 {
 .signal-card p {
   margin: 8px 0 0;
   line-height: 1.5;
+}
+
+.preview-frame-shell {
+  border-radius: 16px;
+  overflow: hidden;
+  background: #050a0b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.preview-frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: contain;
+  background: #050a0b;
 }
 
 .signal-list,

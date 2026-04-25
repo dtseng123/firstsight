@@ -82,7 +82,7 @@ class VisionSessionBridge:
                 name=f"bridge_{self.session_id}",
             )
 
-            processors = _build_processors(self.settings)
+            processors = _build_processors(self.settings, session_id=self.session_id)
             logger.info(
                 "bridge processors built session_id=%s count=%s names=%s",
                 self.session_id,
@@ -247,6 +247,7 @@ class VisionSessionBridge:
                 "threshold": getattr(latest_signal, "threshold", None),
                 "over_threshold": getattr(latest_signal, "over_threshold", None),
                 "message": getattr(latest_signal, "message", ""),
+                "person_count": getattr(latest_signal, "person_count", None),
             }
             session_manager.update_processor_signal(
                 self.session_id,

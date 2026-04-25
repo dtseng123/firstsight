@@ -3,7 +3,7 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, Response, WebSocket, WebSocketDisconnect, status
 
 from .config import Settings, get_settings
 from .schemas import (
@@ -134,6 +134,8 @@ def _runtime_config_overrides(runtime_config: SessionRuntimeConfig) -> dict[str,
     overrides: dict[str, object] = {}
     if runtime_config.speech_pipeline is not None:
         overrides["speech_pipeline"] = runtime_config.speech_pipeline
+    if runtime_config.enable_pose_processor is not None:
+        overrides["enable_pose_processor"] = runtime_config.enable_pose_processor
     if runtime_config.gemini_llm_model is not None:
         overrides["gemini_llm_model"] = runtime_config.gemini_llm_model
     if runtime_config.fast_whisper_model_size is not None:
@@ -165,12 +167,15 @@ def read_health(settings: Settings = Depends(get_settings)) -> HealthResponse:
         status="ok",
         provider=settings.realtime_provider,
         face_droop_processor_enabled=settings.enable_face_droop_processor,
+        pose_processor_enabled=settings.enable_pose_processor,
     )
 
 
 @router.get("/bootstrap", response_model=BootstrapSummary)
 def read_bootstrap(settings: Settings = Depends(get_settings)) -> BootstrapSummary:
     enabled_processors: list[str] = []
+    if settings.enable_pose_processor:
+        enabled_processors.append("yolo_pose_overlay")
     if settings.enable_face_droop_processor:
         enabled_processors.append("face_droop")
 
@@ -182,7 +187,7 @@ def read_bootstrap(settings: Settings = Depends(get_settings)) -> BootstrapSumma
         notes=[
             "FastAPI is intentionally bootable without a live Vision Agents session.",
             "Use app.examples.basic_video_agent as the minimal realtime starting point.",
-            "The viewer/dashboard contract will be added on top of this base scaffold.",
+            "The viewer/dashboard can poll session state and fetch the latest annotated preview frame.",
             "POST /sessions now doubles as the Android backend-mode bootstrap endpoint.",
             "The /sessions websocket accepts both custom ingest events and Gemini-style setup/realtimeInput envelopes.",
         ],
@@ -296,6 +301,16 @@ def read_session(session_id: str) -> SessionStatusResponse:
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     return SessionStatusResponse(**record.to_dict())
+
+
+@router.get("/sessions/{session_id}/frame")
+def read_session_frame(session_id: str) -> Response:
+    record = session_manager.get(session_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    if record.latest_preview_frame is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Preview frame not available")
+    return Response(content=record.latest_preview_frame, media_type=record.latest_preview_mime_type)
 
 
 @router.websocket("/sessions/{session_id}/stream")

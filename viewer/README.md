@@ -5,6 +5,7 @@ Purpose:
 
 What it shows:
 - active sessions
+- latest annotated preview frame from the active processor path
 - counters for video/audio/text traffic
 - latest processor signals
 - recent transcript/debug events

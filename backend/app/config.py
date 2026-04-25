@@ -16,10 +16,15 @@ class Settings(BaseSettings):
     app_port: int = 8000
 
     realtime_provider: Literal["gemini", "openai"] = "gemini"
-    speech_pipeline: Literal["realtime", "fast_whisper_pipeline"] = "fast_whisper_pipeline"
-    realtime_video_fps: int = 2
-    processor_fps: int = 2
+    speech_pipeline: Literal["realtime", "fast_whisper_pipeline"] = "realtime"
+    realtime_video_fps: int = 10
+    processor_fps: int = 10
     enable_face_droop_processor: bool = False
+    enable_pose_processor: bool = False
+    pose_model_path: str = "yolo11n-pose.pt"
+    pose_conf_threshold: float = 0.5
+    pose_device: Literal["cpu", "cuda"] = "cpu"
+    pose_enable_hand_tracking: bool = True
     stream_api_key: str = ""
     stream_api_secret: str = ""
     openai_api_key: str = ""

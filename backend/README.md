@@ -20,13 +20,15 @@ Minimal backend scaffold for the planned smart-glasses realtime agent platform.
 - `GET /bootstrap`
 - `POST /sessions`
 - `GET /sessions/{session_id}`
+- `GET /sessions/{session_id}/frame`
 - `WS /sessions/{session_id}/stream`
 
 Important:
 
 - the session WebSocket is live and tested for app-to-backend ingest
-- it currently counts and acknowledges streamed events
-- it does **not** yet forward live media into a real Vision Agents call
+- realtime mode forwards live media into the Vision Agents realtime provider bridge
+- the viewer can poll session state and fetch the latest annotated preview frame
+- the Fast Whisper pipeline path still exists, but the quickest demo path is Gemini realtime plus the pose overlay processor
 
 ## Minimal Example
 
@@ -67,5 +69,5 @@ make smoke-stream
 - The FastAPI service is intentionally lightweight and does not require a live Stream or model session to boot.
 - The Vision Agents example is the starting point for the realtime backend, not the finished architecture.
 - The face droop processor is currently a scaffold seam for your real model.
-- The current `/sessions/{id}/stream` endpoint proves the app-to-backend hop, not the full backend-to-provider hop.
+- The pose overlay processor uses the Vision Agents ultralytics plugin and stores the latest annotated JPEG in memory for the viewer.
 - `make clean` removes the backend virtualenv and Python caches.

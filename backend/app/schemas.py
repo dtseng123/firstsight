@@ -12,6 +12,7 @@ class HealthResponse(BaseModel):
     status: str
     provider: str
     face_droop_processor_enabled: bool
+    pose_processor_enabled: bool
 
 
 class BootstrapSummary(BaseModel):
@@ -24,6 +25,7 @@ class BootstrapSummary(BaseModel):
 
 class SessionRuntimeConfig(BaseModel):
     speech_pipeline: str | None = None
+    enable_pose_processor: bool | None = None
     gemini_llm_model: str | None = None
     fast_whisper_model_size: str | None = None
     fast_whisper_language: str | None = None
@@ -68,6 +70,8 @@ class SessionStatusResponse(BaseModel):
     transcript_turns: list[dict[str, str]] = Field(default_factory=list)
     processor_signals: dict[str, dict[str, object]] = Field(default_factory=dict)
     debug_events: list[dict[str, object]] = Field(default_factory=list)
+    preview_frame_available: bool = False
+    preview_frame_updated_at: str | None = None
     call_id: str | None = None
     call_type: str | None = None
     agent_session_id: str | None = None

@@ -12,6 +12,7 @@ type ProcessorSignal = {
   threshold?: number;
   over_threshold?: boolean;
   message?: string;
+  person_count?: number;
 };
 
 type SessionStatus = {
@@ -35,6 +36,8 @@ type SessionStatus = {
   }>;
   processor_signals: Record<string, ProcessorSignal>;
   debug_events: DebugEvent[];
+  preview_frame_available: boolean;
+  preview_frame_updated_at: string | null;
   vision_agent_started: boolean;
   vision_agent_error: string | null;
 };
@@ -118,6 +121,12 @@ function App() {
   );
   const lastCompletedTurn =
     selectedSession?.transcript_turns[selectedSession.transcript_turns.length - 1];
+  const previewFrameUrl =
+    selectedSessionId && selectedSession?.preview_frame_available
+      ? `${backendUrl}/sessions/${selectedSessionId}/frame?ts=${encodeURIComponent(
+          selectedSession.preview_frame_updated_at || selectedSession.last_event_at,
+        )}`
+      : "";
 
   return (
     <main className="page">
@@ -165,6 +174,22 @@ function App() {
       <section className="grid content-grid">
         <section className="panel">
           <div className="panel-header">
+            <h2>Annotated Preview</h2>
+            <span className="muted">
+              {selectedSession?.preview_frame_available ? "live pose overlay" : "waiting for frame"}
+            </span>
+          </div>
+          {previewFrameUrl ? (
+            <div className="preview-frame-shell">
+              <img className="preview-frame" src={previewFrameUrl} alt="Annotated session preview" />
+            </div>
+          ) : (
+            <p className="empty">No annotated preview frame available yet.</p>
+          )}
+        </section>
+
+        <section className="panel">
+          <div className="panel-header">
             <h2>Transcripts</h2>
             <span className="muted">
               {selectedSession?.vision_agent_error
@@ -209,6 +234,7 @@ function App() {
                   </div>
                   <p>{signal.message || "No processor message yet."}</p>
                   <div className="signal-metrics">
+                    <span>people: {typeof signal.person_count === "number" ? signal.person_count : "n/a"}</span>
                     <span>score: {formatMetric(signal.score)}</span>
                     <span>threshold: {formatMetric(signal.threshold)}</span>
                   </div>

@@ -140,7 +140,7 @@ class FastWhisperPipelineBridge:
                 name=f"pipeline_{self.session_id}",
             )
 
-            processors = _build_processors(self.settings)
+            processors = _build_processors(self.settings, session_id=self.session_id)
             for processor in processors:
                 await processor.process_video(
                     self._video_track,
@@ -292,6 +292,7 @@ class FastWhisperPipelineBridge:
                 "threshold": getattr(latest_signal, "threshold", None),
                 "over_threshold": getattr(latest_signal, "over_threshold", None),
                 "message": getattr(latest_signal, "message", ""),
+                "person_count": getattr(latest_signal, "person_count", None),
             }
             session_manager.update_processor_signal(self.session_id, payload["name"], payload)
             session_manager.append_debug_event(self.session_id, "processor_signal", payload)

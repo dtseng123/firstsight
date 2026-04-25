@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.pipeline_bridge import _extract_retry_delay_seconds
+from app.session_manager import session_manager
 
 
 def _receive_until_ack(websocket: object) -> tuple[list[dict[str, object]], dict[str, object]]:
@@ -213,3 +214,21 @@ def test_extract_retry_delay_seconds_parses_gemini_error_text() -> None:
     )
 
     assert _extract_retry_delay_seconds(error_message) == 21
+
+
+def test_session_frame_endpoint_serves_latest_preview_frame() -> None:
+    client = TestClient(app)
+
+    create_response = client.post("/sessions")
+    assert create_response.status_code == 201
+    session_id = create_response.json()["session_id"]
+    session_manager.update_preview_frame(session_id, b"fake-jpeg", mime_type="image/jpeg")
+
+    status_response = client.get(f"/sessions/{session_id}")
+    assert status_response.status_code == 200
+    assert status_response.json()["preview_frame_available"] is True
+
+    frame_response = client.get(f"/sessions/{session_id}/frame")
+    assert frame_response.status_code == 200
+    assert frame_response.content == b"fake-jpeg"
+    assert frame_response.headers["content-type"].startswith("image/jpeg")
