@@ -3,6 +3,7 @@ import time
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.pipeline_bridge import _extract_retry_delay_seconds
 
 
 def _receive_until_ack(websocket: object) -> tuple[list[dict[str, object]], dict[str, object]]:
@@ -201,3 +202,14 @@ def test_sessions_list_exposes_debug_state() -> None:
     matching = next(session for session in sessions if session["session_id"] == session_id)
     assert matching["debug_events"]
     assert matching["debug_events"][-1]["type"] in {"stream_closed", "setup", "stream_connected"}
+
+
+def test_extract_retry_delay_seconds_parses_gemini_error_text() -> None:
+    error_message = (
+        "429 Too Many Requests. {'message': '{"
+        "\"error\":{\"message\":\"Quota exceeded. Please retry in 20.938471165s.\","
+        "\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.RetryInfo\","
+        "\"retryDelay\":\"20s\"}]}}'}"
+    )
+
+    assert _extract_retry_delay_seconds(error_message) == 21

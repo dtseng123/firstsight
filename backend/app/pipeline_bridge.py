@@ -4,6 +4,9 @@ import asyncio
 import base64
 import io
 import logging
+import math
+import re
+import time
 from collections.abc import Awaitable, Callable
 
 import av
@@ -26,6 +29,32 @@ logger = logging.getLogger(__name__)
 
 JsonEmitter = Callable[[dict[str, object]], Awaitable[None]]
 _warmup_cache = WarmupCache()
+_RETRY_DELAY_PATTERNS = (
+    re.compile(r"Please retry in (?P<seconds>\d+(?:\.\d+)?)s", re.IGNORECASE),
+    re.compile(r'"retryDelay":\s*"(?P<seconds>\d+(?:\.\d+)?)s"', re.IGNORECASE),
+)
+
+
+def _extract_retry_delay_seconds(error_message: str) -> int | None:
+    for pattern in _RETRY_DELAY_PATTERNS:
+        match = pattern.search(error_message)
+        if match is None:
+            continue
+        try:
+            seconds = float(match.group("seconds"))
+        except (TypeError, ValueError):
+            continue
+        return max(1, math.ceil(seconds))
+    return None
+
+
+def _is_gemini_rate_limit_error(error_message: str) -> bool:
+    lowered = error_message.lower()
+    return (
+        "429" in lowered
+        and "too many requests" in lowered
+        and ("quota exceeded" in lowered or "resource_exhausted" in lowered)
+    )
 
 
 class FastWhisperPipelineBridge:
@@ -60,6 +89,7 @@ class FastWhisperPipelineBridge:
         self._pending_user_text: list[str] = []
         self._turn_task: asyncio.Task[None] | None = None
         self._output_chunks_sent = 0
+        self._rate_limited_until: float | None = None
 
     @property
     def started(self) -> bool:
@@ -401,6 +431,13 @@ class FastWhisperPipelineBridge:
 
     async def _respond_with_text(self, text: str) -> None:
         async with self._response_lock:
+            if self._rate_limited_until is not None:
+                remaining = math.ceil(self._rate_limited_until - time.monotonic())
+                if remaining > 0:
+                    await self._emit_rate_limit_notice(remaining)
+                    return
+                self._rate_limited_until = None
+
             prompt = text
             processor_context = self._processor_context()
             if processor_context:
@@ -409,18 +446,59 @@ class FastWhisperPipelineBridge:
             try:
                 await self._llm.simple_response(prompt, participant=self._participant)
             except Exception as exc:
+                error_message = str(exc)
+                if _is_gemini_rate_limit_error(error_message):
+                    retry_after_seconds = _extract_retry_delay_seconds(error_message) or 20
+                    self._rate_limited_until = time.monotonic() + retry_after_seconds
+                    logger.warning(
+                        "pipeline rate limited session_id=%s retry_after_seconds=%s",
+                        self.session_id,
+                        retry_after_seconds,
+                    )
+                    session_manager.append_debug_event(
+                        self.session_id,
+                        "rate_limited",
+                        {
+                            "provider": "gemini",
+                            "retry_after_seconds": retry_after_seconds,
+                            "message": error_message,
+                        },
+                    )
+                    await self._emit_rate_limit_notice(retry_after_seconds)
+                    return
+
                 logger.exception("pipeline llm failure session_id=%s", self.session_id)
                 session_manager.append_debug_event(
                     self.session_id,
                     "bridge_error",
-                    {"message": str(exc)},
+                    {"message": error_message},
                 )
                 await self._safe_emit(
                     {
                         "type": "bridge_error",
-                        "message": f"LLM response failed: {exc}",
+                        "message": f"LLM response failed: {error_message}",
                     }
                 )
+
+    async def _emit_rate_limit_notice(self, retry_after_seconds: int) -> None:
+        message = (
+            "Gemini rate limit reached. "
+            f"Wait about {retry_after_seconds} seconds, then try again."
+        )
+        session_manager.append_debug_event(
+            self.session_id,
+            "rate_limit_notice",
+            {"retry_after_seconds": retry_after_seconds, "message": message},
+        )
+        session_manager.update_output_transcript(self.session_id, message)
+        await self._safe_emit(
+            {
+                "serverContent": {
+                    "outputTranscription": {"text": message},
+                    "turnComplete": True,
+                }
+            }
+        )
 
     async def _safe_emit(self, payload: dict[str, object]) -> None:
         if self._closed:
