@@ -57,3 +57,11 @@ def test_result_is_heartrate_result_dataclass():
     assert hasattr(result, "bpm")
     assert hasattr(result, "confidence")
     assert hasattr(result, "alert")
+
+
+def test_flat_spectrum_gives_low_confidence():
+    # Equal power at all frequencies → no dominant peak → low confidence
+    buf = np.ones((150, 8, 15, 3), dtype=np.float32)
+    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
+    result = p.compute(buf)
+    assert result.confidence < 0.5

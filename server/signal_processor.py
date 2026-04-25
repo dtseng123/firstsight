@@ -38,12 +38,13 @@ class SignalProcessor:
         peak_freq = frequencies[peak_idx]
         bpm = round(float(peak_freq * 60), 1)
 
-        peak_power = avg_spectrum[peak_idx]
-        # Mean in-band power (heart rate frequency band) as a proxy for background noise level
-        bg_mean = avg_spectrum[mask].mean()
-        bg_mean = bg_mean if bg_mean > 0 else 1e-10
-        # SNR is divided by 10.0 to normalize raw SNR values into [0, 1] range; without this scaling, SNR would almost always exceed 1.0
-        confidence = round(min(float(peak_power / bg_mean) / 10.0, 1.0), 3)
+        peak_power = bandpass[peak_idx]
+        # Out-of-band power is the true noise floor — everything the signal competes against
+        out_of_band = avg_spectrum[~mask]
+        noise = float(out_of_band.mean()) if len(out_of_band) > 0 else 0.0
+        noise = noise if noise > 0 else 1e-10
+        # SNR / 5.0 calibrated for real video: clean pulse → confidence > 0.5, flat noise → confidence < 0.3
+        confidence = round(min(float(peak_power / noise) / 5.0, 1.0), 3)
 
         if bpm < 40 or bpm > 180 or confidence < 0.3:
             self._no_signal_count += 1
