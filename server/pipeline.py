@@ -39,7 +39,9 @@ class HeartRatePipeline:
         self.detector = detector
         self.tracker = tracker
         self.fps = fps
-        self.min_freq, self.max_freq = FREQ_RANGES.get(mode, FREQ_RANGES["adult"])
+        if mode not in FREQ_RANGES:
+            raise ValueError(f"Unknown mode {mode!r}. Valid: {list(FREQ_RANGES)}")
+        self.min_freq, self.max_freq = FREQ_RANGES[mode]
         self.buffers: dict[int, deque] = defaultdict(lambda: deque(maxlen=BUFFER_SIZE))
         self.signal_processors: dict[int, SignalProcessor] = {}
         self.prev_rois: dict[int, np.ndarray] = {}
@@ -59,15 +61,18 @@ class HeartRatePipeline:
 
     def _motion_too_high(self, track_id: int, roi: np.ndarray) -> bool:
         prev = self.prev_rois.get(track_id)
-        self.prev_rois[track_id] = roi
         if prev is None or prev.shape != roi.shape:
+            self.prev_rois[track_id] = roi
             return False
         flow = cv2.calcOpticalFlowFarneback(
             cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY),
             cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY),
             None, 0.5, 3, 15, 3, 5, 1.2, 0,
         )
-        return float(np.sqrt(flow[..., 0] ** 2 + flow[..., 1] ** 2).mean()) > MOTION_THRESHOLD
+        if float(np.sqrt(flow[..., 0] ** 2 + flow[..., 1] ** 2).mean()) > MOTION_THRESHOLD:
+            return True
+        self.prev_rois[track_id] = roi
+        return False
 
     def _get_processor(self, track_id: int) -> SignalProcessor:
         if track_id not in self.signal_processors:
@@ -78,6 +83,8 @@ class HeartRatePipeline:
         return self.signal_processors[track_id]
 
     def process_frame(self, frame: np.ndarray) -> list[PipelineResult]:
+        if frame is None or frame.ndim != 3:
+            return []
         detections = self.detector.detect(frame)
         tracks = self.tracker.update(detections, frame)
         results = []
