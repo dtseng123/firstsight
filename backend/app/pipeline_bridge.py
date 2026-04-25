@@ -133,6 +133,13 @@ class FastWhisperPipelineBridge:
             return
 
         self._audio_chunks_seen += 1
+        if self._audio_chunks_seen in {1, 2, 5, 10} or self._audio_chunks_seen % 25 == 0:
+            logger.info(
+                "pipeline audio session_id=%s chunk_count=%s bytes=%s",
+                self.session_id,
+                self._audio_chunks_seen,
+                len(audio_bytes),
+            )
         pcm = PcmData.from_bytes(
             audio_bytes,
             sample_rate=16000,
@@ -190,9 +197,6 @@ class FastWhisperPipelineBridge:
             if self._closed:
                 return
 
-            self._closed = True
-            self._started = False
-
             if self._turn_task is not None:
                 self._turn_task.cancel()
                 self._turn_task = None
@@ -210,6 +214,13 @@ class FastWhisperPipelineBridge:
                 if close is not None:
                     await close()
             self._processors.clear()
+
+            flush = getattr(self._stt, "flush", None)
+            if flush is not None:
+                await flush(self._participant)
+
+            self._closed = True
+            self._started = False
 
             if self._tts is not None:
                 await self._tts.close()
@@ -258,6 +269,11 @@ class FastWhisperPipelineBridge:
     def _subscribe_stt_events(self, stt_component: object) -> None:
         @stt_component.events.subscribe
         async def on_partial_transcript(event: STTPartialTranscriptEvent) -> None:
+            logger.info(
+                "pipeline partial transcript session_id=%s text=%r",
+                self.session_id,
+                event.text[:200],
+            )
             session_manager.append_debug_event(
                 self.session_id,
                 "stt_partial",

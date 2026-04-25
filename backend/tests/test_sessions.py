@@ -7,7 +7,7 @@ from app.main import app
 
 def _receive_until_ack(websocket: object) -> tuple[list[dict[str, object]], dict[str, object]]:
     messages: list[dict[str, object]] = []
-    for _ in range(6):
+    for _ in range(30):
         message = websocket.receive_json()
         messages.append(message)
         if message.get("type") == "ack":

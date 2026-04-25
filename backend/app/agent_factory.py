@@ -39,12 +39,15 @@ def build_text_llm(settings: Settings) -> object:
 
 
 def build_stt(settings: Settings) -> object:
-    from vision_agents.plugins import fast_whisper
+    from .stt.fast_whisper_live import FastWhisperLiveSTT
 
-    return fast_whisper.STT(
+    return FastWhisperLiveSTT(
         model_size=settings.fast_whisper_model_size,
         language=settings.fast_whisper_language,
         device=settings.fast_whisper_device,
+        min_buffer_duration_ms=settings.fast_whisper_min_buffer_ms,
+        process_interval_ms=settings.fast_whisper_process_interval_ms,
+        max_buffer_duration_ms=settings.fast_whisper_max_buffer_ms,
     )
 
 

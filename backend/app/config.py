@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     fast_whisper_model_size: str = "base"
     fast_whisper_language: str = "en"
     fast_whisper_device: Literal["cpu", "cuda"] = "cpu"
+    fast_whisper_min_buffer_ms: int = 400
+    fast_whisper_process_interval_ms: int = 800
+    fast_whisper_max_buffer_ms: int = 3000
     pipeline_turn_delay_ms: int = 1200
     backend_tts_enabled: bool = True
     elevenlabs_api_key: str = ""
