@@ -37,8 +37,10 @@ class SignalProcessor:
         bpm = round(float(peak_freq * 60), 1)
 
         peak_power = avg_spectrum[peak_idx]
+        # Mean in-band power (heart rate frequency band) as a proxy for background noise level
         bg_mean = avg_spectrum[mask].mean()
         bg_mean = bg_mean if bg_mean > 0 else 1e-10
+        # SNR is divided by 10.0 to normalize raw SNR values into [0, 1] range; without this scaling, SNR would almost always exceed 1.0
         confidence = round(min(float(peak_power / bg_mean) / 10.0, 1.0), 3)
 
         if bpm < 40 or bpm > 180 or confidence < 0.3:
