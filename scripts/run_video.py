@@ -10,6 +10,7 @@ from pathlib import Path
 
 BASE = Path(__file__).parent.parent
 sys.path.insert(0, str(BASE / "vendor"))
+sys.path.insert(0, str(BASE))
 
 import cv2
 from server.detector import HeadDetector
