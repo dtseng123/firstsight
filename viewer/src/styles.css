@@ -4,6 +4,12 @@
   background: #111319;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -11,6 +17,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow: hidden;
   background:
     radial-gradient(circle at 20% 0%, rgba(69, 95, 255, 0.12), transparent 24%),
     radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.06), transparent 22%),
@@ -25,8 +32,8 @@ select {
 
 .app-shell {
   position: relative;
-  min-height: 100vh;
-  padding: 18px;
+  height: 100dvh;
+  padding: 10px;
   overflow: hidden;
 }
 
@@ -42,22 +49,24 @@ select {
 .top-label {
   position: relative;
   z-index: 1;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   color: rgba(255, 255, 255, 0.92);
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: 0.03em;
 }
 
 .studio-shell {
   position: relative;
   z-index: 1;
-  min-height: calc(100vh - 60px);
+  height: calc(100dvh - 28px);
   border-radius: 28px;
   background: #f5f5f7;
   color: #1b1f27;
   border: 1px solid rgba(80, 90, 120, 0.18);
   overflow: hidden;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  display: grid;
+  grid-template-rows: auto 1fr;
 }
 
 .studio-header {
@@ -69,8 +78,8 @@ select {
 .studio-brand,
 .studio-nav,
 .studio-controls {
-  min-height: 82px;
-  padding: 18px 20px;
+  min-height: 64px;
+  padding: 12px 16px;
 }
 
 .studio-brand {
@@ -97,13 +106,13 @@ select {
   color: #4e5980;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .studio-brand h1 {
   margin: 0;
-  font-size: 31px;
-  line-height: 1.05;
+  font-size: 23px;
+  line-height: 1;
 }
 
 .nav-tab {
@@ -111,8 +120,8 @@ select {
   background: transparent;
   color: #6b738c;
   letter-spacing: 0.22em;
-  font-size: 14px;
-  padding: 12px 0;
+  font-size: 12px;
+  padding: 8px 0;
   border-bottom: 3px solid transparent;
 }
 
@@ -123,8 +132,8 @@ select {
 
 .control-block {
   display: grid;
-  gap: 6px;
-  min-width: 168px;
+  gap: 4px;
+  min-width: 152px;
 }
 
 .control-block span,
@@ -138,18 +147,19 @@ select {
 
 .control-block input,
 .control-block select {
-  height: 50px;
+  height: 40px;
   border: 2px solid #2d3140;
   background: #fff;
   color: #171b25;
-  padding: 10px 14px;
+  padding: 8px 12px;
   box-shadow: 6px 6px 0 rgba(33, 39, 61, 0.08);
 }
 
 .studio-body {
   display: grid;
   grid-template-columns: 320px 1fr 360px;
-  min-height: calc(100vh - 145px);
+  min-height: 0;
+  height: 100%;
 }
 
 .rail {
@@ -158,6 +168,7 @@ select {
 
 .rail-left {
   border-right: 3px solid #252833;
+  overflow: auto;
 }
 
 .rail-right {
@@ -165,20 +176,22 @@ select {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 0;
+  overflow: hidden;
 }
 
 .canvas-column {
   background: #0b1119;
-  padding: 20px;
+  padding: 14px;
+  min-height: 0;
 }
 
 .panel {
   border-bottom: 2px solid #252833;
-  padding: 18px 20px;
+  padding: 14px 16px;
 }
 
 .panel-tight {
-  padding: 18px 18px 20px;
+  padding: 14px 14px 16px;
 }
 
 .panel:last-child {
@@ -228,8 +241,8 @@ select {
 .signal-list,
 .event-list {
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .session-card {
@@ -237,7 +250,7 @@ select {
   border: 2px solid #252833;
   background: #fff;
   color: #1b1f27;
-  padding: 14px;
+  padding: 12px;
   transition: background 120ms ease, color 120ms ease;
 }
 
@@ -269,13 +282,14 @@ select {
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 14px;
+  gap: 10px;
+  min-height: 0;
 }
 
 .canvas-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -288,7 +302,7 @@ select {
 
 .telemetry-box {
   min-width: 210px;
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .telemetry-box span {
@@ -299,15 +313,15 @@ select {
 
 .telemetry-box strong {
   display: block;
-  margin-top: 6px;
-  font-size: 18px;
+  margin-top: 4px;
+  font-size: 16px;
 }
 
 .canvas-chip {
-  padding: 10px 12px;
+  padding: 8px 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .canvas-stage {
@@ -323,8 +337,8 @@ select {
 }
 
 .canvas-preview-shell {
-  width: min(44vw, 440px);
-  height: min(78vh, 760px);
+  width: min(50vw, 520px);
+  height: min(84vh, 840px);
   max-width: 100%;
   max-height: 100%;
   border: 1px solid rgba(126, 151, 198, 0.35);
@@ -342,15 +356,15 @@ select {
 .canvas-dock {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .dock-card {
   border: 1px solid #334763;
   background: rgba(13, 20, 32, 0.88);
   color: #eef3ff;
-  padding: 14px;
-  min-height: 104px;
+  padding: 12px;
+  min-height: 88px;
 }
 
 .dock-card p {
@@ -379,11 +393,11 @@ select {
 .event-card {
   border: 2px solid #252833;
   background: #fff;
-  padding: 14px;
+  padding: 12px;
 }
 
 .event-list {
-  max-height: calc(100vh - 420px);
+  max-height: calc(100dvh - 300px);
   overflow: auto;
   padding-right: 4px;
 }
@@ -445,6 +459,7 @@ select {
 
   .studio-body {
     grid-template-columns: 1fr;
+    overflow: auto;
   }
 
   .rail-left,
