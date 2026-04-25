@@ -282,11 +282,13 @@ function App() {
 
               <div className="canvas-stage">
                 {previewFrameUrl ? (
-                  <img
-                    className="canvas-preview"
-                    src={previewFrameUrl}
-                    alt="Annotated realtime preview"
-                  />
+                  <div className="canvas-preview-shell">
+                    <img
+                      className="canvas-preview"
+                      src={previewFrameUrl}
+                      alt="Annotated realtime preview"
+                    />
+                  </div>
                 ) : (
                   <div className="canvas-empty">
                     <strong>Awaiting annotated frame</strong>
@@ -297,6 +299,25 @@ function App() {
                   </div>
                 )}
               </div>
+
+              <section className="canvas-dock">
+                <div className="dock-card">
+                  <span className="section-label">Live Wearer</span>
+                  <p>
+                    {selectedSession?.latest_user_transcript ||
+                      latestText(selectedSession?.debug_events, "input_transcription") ||
+                      "No live user transcript."}
+                  </p>
+                </div>
+                <div className="dock-card">
+                  <span className="section-label">Live Agent</span>
+                  <p>
+                    {selectedSession?.latest_assistant_transcript ||
+                      latestText(selectedSession?.debug_events, "output_transcription") ||
+                      "No live assistant transcript."}
+                  </p>
+                </div>
+              </section>
             </div>
 
             {error ? <section className="panel panel-error">{error}</section> : null}
@@ -334,29 +355,6 @@ function App() {
               ) : (
                 <p className="panel-empty">No processor output yet.</p>
               )}
-            </section>
-
-            <section className="panel">
-              <div className="section-title">
-                <span className="section-label">Live Transcript</span>
-                <strong>{selectedSession?.connected_clients || 0} client</strong>
-              </div>
-              <TranscriptLine
-                label="Wearer"
-                text={
-                  selectedSession?.latest_user_transcript ||
-                  latestText(selectedSession?.debug_events, "input_transcription") ||
-                  "No live user transcript."
-                }
-              />
-              <TranscriptLine
-                label="Agent"
-                text={
-                  selectedSession?.latest_assistant_transcript ||
-                  latestText(selectedSession?.debug_events, "output_transcription") ||
-                  "No live assistant transcript."
-                }
-              />
             </section>
 
             <section className="panel">
