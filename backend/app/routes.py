@@ -1,6 +1,7 @@
 import base64
 import asyncio
 import json
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 
@@ -18,6 +19,11 @@ from .session_manager import session_manager
 from .vision_runtime import vision_runtime
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _should_log_media_count(count: int) -> bool:
+    return count in {1, 2, 5, 10} or count % 25 == 0
 
 
 def _extract_client_text(payload: dict[str, object]) -> str | None:
@@ -170,6 +176,15 @@ async def create_session(
     missing = _missing_configuration(settings)
     bootstrap = None
     bootstrap_error: str | None = None
+    logger.info(
+        "create_session session_id=%s provider=%s user_id=%s call_type=%s start_agent_session=%s missing=%s",
+        record.session_id,
+        settings.realtime_provider,
+        request.user_id,
+        request.call_type,
+        request.start_agent_session,
+        ",".join(missing) or "none",
+    )
 
     if (
         request.start_agent_session
@@ -189,8 +204,26 @@ async def create_session(
                 call_id=request.call_id,
                 call_type=request.call_type,
             )
+            logger.info(
+                "vision_runtime bootstrap started session_id=%s agent_session_id=%s call_id=%s call_type=%s",
+                record.session_id,
+                bootstrap.agent_session_id,
+                bootstrap.call_id,
+                bootstrap.call_type,
+            )
         except Exception as exc:  # pragma: no cover - network/config failures are environment-specific
             bootstrap_error = str(exc)
+            logger.exception(
+                "vision_runtime bootstrap failed session_id=%s provider=%s",
+                record.session_id,
+                settings.realtime_provider,
+            )
+    else:
+        logger.info(
+            "vision_runtime bootstrap skipped session_id=%s provider=%s reason=missing_transport_or_provider_config",
+            record.session_id,
+            settings.realtime_provider,
+        )
 
     session_manager.update_bootstrap(
         record.session_id,
@@ -243,6 +276,12 @@ async def stream_session(websocket: WebSocket, session_id: str) -> None:
 
     await websocket.accept()
     session_manager.connect(session_id)
+    logger.info(
+        "stream_session accepted session_id=%s provider=%s missing=%s",
+        session_id,
+        record.provider,
+        ",".join(missing) or "none",
+    )
     send_lock = asyncio.Lock()
 
     async def send_json_safe(payload: dict[str, object]) -> None:
@@ -261,8 +300,24 @@ async def stream_session(websocket: WebSocket, session_id: str) -> None:
                 settings=settings,
                 emit=send_json_safe,
             )
+            logger.info(
+                "realtime bridge started session_id=%s provider=%s",
+                session_id,
+                settings.realtime_provider,
+            )
         except Exception as exc:  # pragma: no cover - network/provider-specific
             bridge_error = str(exc)
+            logger.exception(
+                "realtime bridge failed session_id=%s provider=%s",
+                session_id,
+                settings.realtime_provider,
+            )
+    else:
+        logger.info(
+            "realtime bridge skipped session_id=%s provider=%s reason=missing_provider_key",
+            session_id,
+            settings.realtime_provider,
+        )
 
     await send_json_safe(
         {
@@ -293,6 +348,11 @@ async def stream_session(websocket: WebSocket, session_id: str) -> None:
                     updated = session_manager.record_text_event(session_id, event_type)
                     if updated is None:
                         break
+                    logger.info(
+                        "stream setup received session_id=%s bridge_active=%s",
+                        session_id,
+                        bridge is not None,
+                    )
                     await send_json_safe(
                         {
                             "setupComplete": {
@@ -321,11 +381,38 @@ async def stream_session(websocket: WebSocket, session_id: str) -> None:
                     break
 
                 if bridge is not None and event_type == "audio_chunk" and blob_bytes:
+                    if _should_log_media_count(updated.audio_chunks):
+                        logger.info(
+                            "stream audio forwarded session_id=%s chunk_count=%s bytes=%s",
+                            session_id,
+                            updated.audio_chunks,
+                            len(blob_bytes),
+                        )
                     await bridge.send_audio(blob_bytes)
                 elif bridge is not None and event_type == "video_frame" and blob_bytes:
+                    if _should_log_media_count(updated.video_frames):
+                        logger.info(
+                            "stream video forwarded session_id=%s frame_count=%s bytes=%s",
+                            session_id,
+                            updated.video_frames,
+                            len(blob_bytes),
+                        )
                     await bridge.send_video_frame(blob_bytes)
                 elif bridge is not None and event_type == "text_message" and client_text:
+                    logger.info(
+                        "stream text forwarded session_id=%s chars=%s text=%r",
+                        session_id,
+                        len(client_text),
+                        client_text[:200],
+                    )
                     await bridge.send_text(client_text)
+                elif event_type == "text_message" and client_text:
+                    logger.info(
+                        "stream text received without bridge session_id=%s chars=%s text=%r",
+                        session_id,
+                        len(client_text),
+                        client_text[:200],
+                    )
 
                 if bridge is None and event_type == "video_frame" and not updated.demo_guidance_sent:
                     session_manager.mark_demo_guidance_sent(session_id)
@@ -366,6 +453,13 @@ async def stream_session(websocket: WebSocket, session_id: str) -> None:
                 updated = session_manager.record_binary_event(session_id)
                 if updated is None:
                     break
+                if _should_log_media_count(updated.binary_messages):
+                    logger.info(
+                        "binary frame received session_id=%s binary_count=%s bytes=%s",
+                        session_id,
+                        updated.binary_messages,
+                        len(message["bytes"]),
+                    )
                 await send_json_safe(
                     {
                         "type": "ack",
@@ -375,7 +469,8 @@ async def stream_session(websocket: WebSocket, session_id: str) -> None:
                     }
                 )
     except WebSocketDisconnect:
-        pass
+        logger.info("stream_session disconnected session_id=%s", session_id)
     finally:
         await vision_bridge_manager.close(session_id)
         session_manager.disconnect(session_id)
+        logger.info("stream_session closed session_id=%s", session_id)

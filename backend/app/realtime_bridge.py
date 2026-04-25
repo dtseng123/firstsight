@@ -44,6 +44,9 @@ class VisionSessionBridge:
         self._started = False
         self._closed = False
         self._lock = asyncio.Lock()
+        self._audio_chunks_seen = 0
+        self._video_frames_seen = 0
+        self._text_messages_seen = 0
 
     @property
     def started(self) -> bool:
@@ -55,10 +58,18 @@ class VisionSessionBridge:
                 return
 
             llm = build_realtime_llm(self.settings)
+            logger.info(
+                "bridge start session_id=%s provider=%s processor_fps=%s realtime_video_fps=%s",
+                self.session_id,
+                self.settings.realtime_provider,
+                self.settings.processor_fps,
+                self.settings.realtime_video_fps,
+            )
             llm.set_instructions(self.settings.agent_instructions)
             self._subscribe_to_events(llm)
 
             await llm.connect()
+            logger.info("bridge provider connected session_id=%s", self.session_id)
 
             video_fps = max(self.settings.realtime_video_fps, self.settings.processor_fps, 1)
             self._video_track = QueuedVideoTrack(width=640, height=360, fps=video_fps)
@@ -70,6 +81,12 @@ class VisionSessionBridge:
             )
 
             processors = _build_processors(self.settings)
+            logger.info(
+                "bridge processors built session_id=%s count=%s names=%s",
+                self.session_id,
+                len(processors),
+                ",".join(getattr(processor, "name", processor.__class__.__name__) for processor in processors) or "none",
+            )
             for processor in processors:
                 await processor.process_video(
                     self._video_track,
@@ -81,6 +98,7 @@ class VisionSessionBridge:
                 self._video_track,
                 shared_forwarder=self._video_forwarder,
             )
+            logger.info("bridge video track watching session_id=%s", self.session_id)
 
             self._llm = llm
             self._processors = processors
@@ -90,6 +108,7 @@ class VisionSessionBridge:
     async def send_initial_prompt(self) -> None:
         if not self.started:
             return
+        logger.info("bridge initial prompt session_id=%s", self.session_id)
         prompt = (
             "You are now live in a first aid smart glasses session. "
             "Greet the wearer in one short sentence and ask them to show the patient."
@@ -99,6 +118,14 @@ class VisionSessionBridge:
     async def send_audio(self, audio_bytes: bytes) -> None:
         if not self.started or not audio_bytes:
             return
+        self._audio_chunks_seen += 1
+        if self._audio_chunks_seen in {1, 2, 5, 10} or self._audio_chunks_seen % 25 == 0:
+            logger.info(
+                "bridge audio session_id=%s chunk_count=%s bytes=%s",
+                self.session_id,
+                self._audio_chunks_seen,
+                len(audio_bytes),
+            )
 
         pcm = PcmData.from_bytes(
             audio_bytes,
@@ -113,6 +140,14 @@ class VisionSessionBridge:
     async def send_video_frame(self, image_bytes: bytes) -> None:
         if not self.started or not image_bytes or self._video_track is None:
             return
+        self._video_frames_seen += 1
+        if self._video_frames_seen in {1, 2, 5, 10} or self._video_frames_seen % 25 == 0:
+            logger.info(
+                "bridge video session_id=%s frame_count=%s bytes=%s",
+                self.session_id,
+                self._video_frames_seen,
+                len(image_bytes),
+            )
 
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         frame = av.VideoFrame.from_image(image)
@@ -124,6 +159,14 @@ class VisionSessionBridge:
         prompt = text.strip()
         if not prompt:
             return
+        self._text_messages_seen += 1
+        logger.info(
+            "bridge text session_id=%s text_count=%s chars=%s text=%r",
+            self.session_id,
+            self._text_messages_seen,
+            len(prompt),
+            prompt[:200],
+        )
 
         processor_context = self._processor_context()
         if processor_context:
@@ -135,6 +178,13 @@ class VisionSessionBridge:
         async with self._lock:
             if self._closed:
                 return
+            logger.info(
+                "bridge close session_id=%s audio_chunks=%s video_frames=%s text_messages=%s",
+                self.session_id,
+                self._audio_chunks_seen,
+                self._video_frames_seen,
+                self._text_messages_seen,
+            )
             self._closed = True
             self._started = False
 
@@ -176,6 +226,12 @@ class VisionSessionBridge:
     def _subscribe_to_events(self, llm: object) -> None:
         @llm.events.subscribe
         async def on_user_transcript(event: RealtimeUserSpeechTranscriptionEvent) -> None:
+            logger.info(
+                "bridge user transcript session_id=%s chars=%s text=%r",
+                self.session_id,
+                len(event.text),
+                event.text[:200],
+            )
             await self._safe_emit(
                 {
                     "serverContent": {
@@ -188,6 +244,12 @@ class VisionSessionBridge:
         async def on_agent_transcript(
             event: RealtimeAgentSpeechTranscriptionEvent,
         ) -> None:
+            logger.info(
+                "bridge agent transcript session_id=%s chars=%s text=%r",
+                self.session_id,
+                len(event.text),
+                event.text[:200],
+            )
             await self._safe_emit(
                 {
                     "serverContent": {
@@ -199,6 +261,7 @@ class VisionSessionBridge:
         @llm.events.subscribe
         async def on_turn_complete(event: RealtimeAudioOutputDoneEvent) -> None:
             del event
+            logger.info("bridge turn complete session_id=%s", self.session_id)
             await self._safe_emit({"serverContent": {"turnComplete": True}})
 
         @llm.events.subscribe
@@ -206,6 +269,11 @@ class VisionSessionBridge:
             event: RealtimeDisconnectedEvent | RealtimeErrorEvent,
         ) -> None:
             message = getattr(event, "reason", None) or getattr(event, "error_message", None)
+            logger.warning(
+                "bridge disconnect session_id=%s message=%r",
+                self.session_id,
+                message or "Realtime bridge disconnected",
+            )
             await self._safe_emit(
                 {
                     "type": "bridge_error",

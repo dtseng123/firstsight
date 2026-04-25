@@ -57,6 +57,7 @@ class VisionAgentService {
     fun connect(callback: (Boolean) -> Unit) {
         val sessionsUrl = VisionAgentConfig.sessionsUrl()
         if (sessionsUrl == null) {
+            Log.e(TAG, "Vision Agent backend sessions URL is not configured")
             callback(false)
             return
         }
@@ -72,6 +73,10 @@ class VisionAgentService {
             .url(sessionsUrl)
             .post(payload.toString().toRequestBody(JSON_MEDIA_TYPE))
             .build()
+        Log.d(
+            TAG,
+            "Bootstrapping Vision Agent session url=$sessionsUrl userId=${VisionAgentConfig.userId} userName=${VisionAgentConfig.userName}",
+        )
 
         client.newCall(request).enqueue(object : okhttp3.Callback {
             override fun onFailure(call: okhttp3.Call, e: IOException) {
@@ -88,6 +93,7 @@ class VisionAgentService {
                         return
                     }
                     val body = response.body?.string().orEmpty()
+                    Log.d(TAG, "Bootstrap response code=${response.code} body=$body")
                     val json = JSONObject(body)
                     val bootstrap = VisionAgentBootstrapPayload(
                         sessionId = json.getString("session_id"),
@@ -107,6 +113,10 @@ class VisionAgentService {
                             }
                         },
                     )
+                    Log.d(
+                        TAG,
+                        "Bootstrap parsed sessionId=${bootstrap.sessionId} provider=${bootstrap.provider} visionAgentStarted=${bootstrap.visionAgentStarted} missing=${bootstrap.missingConfiguration}",
+                    )
                     activeSessionId = bootstrap.sessionId
                     onBootstrap?.invoke(bootstrap)
                     openWebSocket(bootstrap.sessionId)
@@ -116,6 +126,7 @@ class VisionAgentService {
     }
 
     fun disconnect() {
+        Log.d(TAG, "Disconnecting Vision Agent session sessionId=$activeSessionId")
         webSocket?.close(1000, null)
         webSocket = null
         activeSessionId = null
@@ -123,6 +134,7 @@ class VisionAgentService {
     }
 
     fun sendAudio(data: ByteArray) {
+        Log.v(TAG, "Sending audio chunk bytes=${data.size} sessionId=$activeSessionId")
         val json = JSONObject().apply {
             put("realtimeInput", JSONObject().apply {
                 put("audio", JSONObject().apply {
@@ -137,11 +149,13 @@ class VisionAgentService {
     fun sendVideoFrame(bitmap: Bitmap) {
         val baos = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, GeminiConfig.VIDEO_JPEG_QUALITY, baos)
+        val imageBytes = baos.toByteArray()
+        Log.v(TAG, "Sending video frame bytes=${imageBytes.size} sessionId=$activeSessionId")
         val json = JSONObject().apply {
             put("realtimeInput", JSONObject().apply {
                 put("video", JSONObject().apply {
                     put("mimeType", "image/jpeg")
-                    put("data", Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP))
+                    put("data", Base64.encodeToString(imageBytes, Base64.NO_WRAP))
                 })
             })
         }
@@ -149,6 +163,7 @@ class VisionAgentService {
     }
 
     fun sendTextMessage(text: String) {
+        Log.d(TAG, "Sending text message sessionId=$activeSessionId text=$text")
         val json = JSONObject().apply {
             put("clientContent", JSONObject().apply {
                 put("turns", JSONArray().put(JSONObject().apply {
@@ -165,10 +180,12 @@ class VisionAgentService {
     private fun openWebSocket(sessionId: String) {
         val streamUrl = VisionAgentConfig.streamUrl(sessionId)
         if (streamUrl == null) {
+            Log.e(TAG, "Vision Agent backend stream URL is null for sessionId=$sessionId")
             resolveConnect(false)
             return
         }
 
+        Log.d(TAG, "Opening backend websocket url=$streamUrl sessionId=$sessionId")
         val request = Request.Builder().url(streamUrl).build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -185,12 +202,13 @@ class VisionAgentService {
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Log.e(TAG, "Backend websocket failure", t)
+                Log.e(TAG, "Backend websocket failure code=${response?.code}", t)
                 resolveConnect(false)
                 onDisconnected?.invoke(t.message)
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                Log.w(TAG, "Backend websocket closing session=$sessionId code=$code reason=$reason")
                 resolveConnect(false)
                 onDisconnected?.invoke("Connection closed ($code: $reason)")
             }
@@ -199,26 +217,34 @@ class VisionAgentService {
 
     private fun handleMessage(text: String) {
         try {
+            Log.v(TAG, "Backend message: $text")
             val json = JSONObject(text)
             when (json.optString("type")) {
                 "session_ready" -> {
+                    Log.d(
+                        TAG,
+                        "session_ready sessionId=${json.optString("session_id")} provider=${json.optString("provider")} bridgeActive=${json.optBoolean("bridge_active")} bridgeError=${json.optString("bridge_error")}",
+                    )
                     return
                 }
 
                 "ack" -> {
                     val videoFrames = json.optInt("video_frames", 0)
                     val audioChunks = json.optInt("audio_chunks", 0)
+                    Log.d(TAG, "ack videoFrames=$videoFrames audioChunks=$audioChunks")
                     onAck?.invoke(videoFrames, audioChunks)
                     return
                 }
 
                 "bridge_error" -> {
+                    Log.e(TAG, "bridge_error ${json.optString("message", "Realtime bridge error")}")
                     onDisconnected?.invoke(json.optString("message", "Realtime bridge error"))
                     return
                 }
             }
 
             if (json.has("setupComplete")) {
+                Log.d(TAG, "setupComplete received sessionId=$activeSessionId")
                 resolveConnect(true)
                 return
             }
@@ -229,6 +255,7 @@ class VisionAgentService {
                     val transcriptText =
                         serverContent.getJSONObject("inputTranscription").optString("text", "")
                     if (transcriptText.isNotEmpty()) {
+                        Log.d(TAG, "inputTranscription text=$transcriptText")
                         onInputTranscription?.invoke(transcriptText)
                     }
                 }
@@ -236,10 +263,12 @@ class VisionAgentService {
                     val transcriptText =
                         serverContent.getJSONObject("outputTranscription").optString("text", "")
                     if (transcriptText.isNotEmpty()) {
+                        Log.d(TAG, "outputTranscription text=$transcriptText")
                         onOutputTranscription?.invoke(transcriptText)
                     }
                 }
                 if (serverContent.optBoolean("turnComplete", false)) {
+                    Log.d(TAG, "turnComplete sessionId=$activeSessionId")
                     onTurnComplete?.invoke()
                 }
             }
@@ -249,6 +278,7 @@ class VisionAgentService {
     }
 
     private fun sendSetupMessage() {
+        Log.d(TAG, "Sending setup message sessionId=$activeSessionId")
         val json = JSONObject().apply {
             put("setup", JSONObject().apply {
                 put("model", "backend-adapter")
@@ -261,6 +291,7 @@ class VisionAgentService {
     }
 
     private fun resolveConnect(success: Boolean) {
+        Log.d(TAG, "resolveConnect success=$success sessionId=$activeSessionId")
         val callback = connectCallback
         connectCallback = null
         callback?.invoke(success)
