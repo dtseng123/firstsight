@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-from server.signal_processor import SignalProcessor, HeartRateResult, CONF_WINDOW
+from server.signal_processor import (SignalProcessor, HeartRateResult, CONF_WINDOW,
+                                      STATUS_NO_PULSE, STATUS_NO_SIGNAL, STATUS_NORMAL)
 
 
 def make_buffer(fps: float, n: int, target_hz: float, h: int = 8, w: int = 15) -> np.ndarray:
@@ -56,32 +57,37 @@ def test_returns_zero_for_incomplete_buffer():
     assert result.confidence == 0.0
 
 
-def test_no_pulse_alert_after_sustained_low_confidence():
+def test_no_pulse_after_sustained_low_confidence():
     # conf_window=1 so a single bad reading fills the window immediately
     noise = np.random.rand(150, 8, 15, 3).astype(np.float32) * 0.001
     p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0, conf_window=1)
     result = p.compute(noise)
-    assert result.alert == "no_pulse"
+    assert result.status == STATUS_NO_PULSE
 
 
 def test_no_pulse_not_triggered_by_single_bad_frame():
-    # One bad frame in a window of many should not trigger the alert
     buf = make_buffer(fps=30.0, n=150, target_hz=1.2)
     noise = np.random.rand(150, 8, 15, 3).astype(np.float32) * 0.001
     p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
-    # Fill window with good readings
     for _ in range(CONF_WINDOW - 1):
         p.compute(buf)
-    # One bad reading at the end — below the 70% threshold
     result = p.compute(noise)
-    assert result.alert is None
+    assert result.status != STATUS_NO_PULSE
 
 
-def test_no_alert_for_clean_signal():
-    buf = make_buffer(fps=30.0, n=150, target_hz=1.2)
-    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
+def test_normal_status_for_clean_signal():
+    buf = make_buffer(fps=30.0, n=150, target_hz=1.2)  # 72 BPM — adult normal
+    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0, mode="adult")
     result = p.compute(buf)
-    assert result.alert is None
+    assert result.status == STATUS_NORMAL
+
+
+def test_bradycardia_status():
+    buf = make_buffer(fps=30.0, n=150, target_hz=0.8)  # 48 BPM — below adult normal
+    # Use wide bandpass so 0.8 Hz is reachable
+    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=0.5, max_freq=2.0, mode="adult")
+    result = p.compute(buf)
+    assert result.status == "bradycardia"
 
 
 def test_bpm_smoothing_does_not_jump():
@@ -102,7 +108,7 @@ def test_result_is_heartrate_result_dataclass():
     assert isinstance(result, HeartRateResult)
     assert hasattr(result, "bpm")
     assert hasattr(result, "confidence")
-    assert hasattr(result, "alert")
+    assert hasattr(result, "status")
 
 
 def test_flat_spectrum_gives_low_confidence():

@@ -4,7 +4,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Optional
 
-from server.signal_processor import SignalProcessor, HeartRateResult
+from server.signal_processor import SignalProcessor, HeartRateResult, STATUS_NO_SIGNAL
 
 PYRAMID_LEVELS = 3
 BUFFER_SIZE = 150
@@ -24,7 +24,7 @@ class PipelineResult:
     track_id: int
     bpm: float
     confidence: float
-    alert: Optional[str]
+    status: str
 
 
 def build_gaussian_pyramid(frame: np.ndarray, levels: int) -> list[np.ndarray]:
@@ -42,6 +42,7 @@ class HeartRatePipeline:
         self.fps = fps
         if mode not in FREQ_RANGES:
             raise ValueError(f"Unknown mode {mode!r}. Valid: {list(FREQ_RANGES)}")
+        self.mode = mode
         self.min_freq, self.max_freq = FREQ_RANGES[mode]
         self.buffers: dict[int, deque] = defaultdict(lambda: deque(maxlen=BUFFER_SIZE))
         self.signal_processors: dict[int, SignalProcessor] = {}
@@ -81,6 +82,7 @@ class HeartRatePipeline:
             self.signal_processors[track_id] = SignalProcessor(
                 fps=self.fps, buffer_size=BUFFER_SIZE,
                 min_freq=self.min_freq, max_freq=self.max_freq,
+                mode=self.mode,
             )
         return self.signal_processors[track_id]
 
@@ -117,7 +119,7 @@ class HeartRatePipeline:
                     track_id=track_id,
                     bpm=hr.bpm,
                     confidence=hr.confidence,
-                    alert=hr.alert,
+                    status=hr.status,
                 ))
 
         return results

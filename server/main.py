@@ -59,7 +59,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     "track_id": result.track_id,
                     "bpm": result.bpm,
                     "confidence": result.confidence,
-                    "alert": result.alert,
+                    "status": result.status,
                 }))
     except WebSocketDisconnect:
         pass
