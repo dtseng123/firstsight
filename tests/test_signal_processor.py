@@ -111,3 +111,22 @@ def test_flat_spectrum_gives_low_confidence():
     p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
     result = p.compute(buf)
     assert result.confidence < 0.5
+
+
+# SNR robustness: spatial averaging over 120 pixels in the Gaussian pyramid
+# means the algorithm stays accurate well beyond 1:1 signal/noise ratio.
+# Confidence degrades gracefully as the signal gets weaker.
+@pytest.mark.parametrize("noise_amp,min_confidence", [
+    (0.1,  0.8),   # low noise  — high confidence
+    (1.0,  0.5),   # 1:1 ratio  — still detected, confidence drops
+    (5.0,  0.1),   # 5x noise   — BPM still correct, confidence low
+])
+def test_snr_robustness(noise_amp, min_confidence):
+    rng = np.random.default_rng(42)
+    buf = make_buffer(fps=30.0, n=150, target_hz=1.2)   # 72 BPM clean signal
+    noisy = buf + rng.normal(0, noise_amp, buf.shape).astype(np.float32)
+    p = SignalProcessor(fps=30.0, buffer_size=150, min_freq=1.0, max_freq=2.0)
+    result = p.compute(noisy)
+    # Spatial averaging over 120 pixels recovers the signal even at high noise
+    assert abs(result.bpm - 72.0) < 6.0, f"Expected ~72 BPM at noise={noise_amp}, got {result.bpm:.1f}"
+    assert result.confidence >= min_confidence, f"Confidence {result.confidence:.3f} below {min_confidence} at noise={noise_amp}"
