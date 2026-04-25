@@ -33,7 +33,11 @@ def build_pipeline(mode: str = "adult") -> HeartRatePipeline:
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     mode = websocket.query_params.get("mode", "adult")
-    pipeline = build_pipeline(mode=mode)
+    try:
+        pipeline = build_pipeline(mode=mode)
+    except ValueError as e:
+        await websocket.close(code=1008, reason=str(e))
+        return
 
     try:
         while True:
