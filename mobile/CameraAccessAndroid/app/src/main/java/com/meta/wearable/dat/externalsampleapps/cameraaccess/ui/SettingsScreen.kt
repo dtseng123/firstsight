@@ -70,6 +70,8 @@ fun SettingsScreen(
     var videoStreamingEnabled by remember { mutableStateOf(SettingsManager.videoStreamingEnabled) }
     var proactiveNotificationsEnabled by remember { mutableStateOf(SettingsManager.proactiveNotificationsEnabled) }
     var showResetDialog by remember { mutableStateOf(false) }
+    val isVisionAgentBackendMode = aiBackendMode == VisionAgentMode.VISION_AGENT_BACKEND
+    val isRealtimeBackendMode = backendSpeechPipeline == "realtime"
 
     fun save() {
         SettingsManager.geminiAPIKey = geminiAPIKey.trim()
@@ -175,146 +177,172 @@ fun SettingsScreen(
                 )
             }
 
-            SectionHeader("Gemini API")
-            MonoTextField(
-                value = geminiAPIKey,
-                onValueChange = { geminiAPIKey = it },
-                label = "API Key",
-                placeholder = "Enter Gemini API key",
-            )
+            if (!isVisionAgentBackendMode) {
+                SectionHeader("Direct Gemini")
+                Text(
+                    "Use this when the Android app should talk to Gemini directly without going through the Python backend.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                MonoTextField(
+                    value = geminiAPIKey,
+                    onValueChange = { geminiAPIKey = it },
+                    label = "Gemini API Key",
+                    placeholder = "Enter Gemini API key",
+                )
+                SectionHeader("Direct Gemini Prompt")
+                OutlinedTextField(
+                    value = systemPrompt,
+                    onValueChange = { systemPrompt = it },
+                    label = { Text("System prompt") },
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                )
+            } else {
+                SectionHeader("Vision Agent Backend")
+                Text(
+                    "The backend owns the realtime agent runtime. Pick a speech path first, then only the relevant controls appear below.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                MonoTextField(
+                    value = backendBaseUrl,
+                    onValueChange = { backendBaseUrl = it },
+                    label = "Base URL",
+                    placeholder = "http://your-mac.local:8000",
+                    keyboardType = KeyboardType.Uri,
+                )
+                MonoTextField(
+                    value = backendUserId,
+                    onValueChange = { backendUserId = it },
+                    label = "User ID",
+                    placeholder = "android-demo-user",
+                )
+                MonoTextField(
+                    value = backendUserName,
+                    onValueChange = { backendUserName = it },
+                    label = "Display Name",
+                    placeholder = "DroopDetection Demo",
+                )
 
-            SectionHeader("Vision Agent Backend")
-            MonoTextField(
-                value = backendBaseUrl,
-                onValueChange = { backendBaseUrl = it },
-                label = "Base URL",
-                placeholder = "http://your-mac.local:8000",
-                keyboardType = KeyboardType.Uri,
-            )
-            MonoTextField(
-                value = backendUserId,
-                onValueChange = { backendUserId = it },
-                label = "User ID",
-                placeholder = "android-demo-user",
-            )
-            MonoTextField(
-                value = backendUserName,
-                onValueChange = { backendUserName = it },
-                label = "Display Name",
-                placeholder = "DroopDetection Demo",
-            )
-            Text(
-                "These values are sent at session bootstrap so you can change the backend speech stack without restarting the Python server.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SectionHeader("Backend Speech Mode")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ModeButton(
-                    label = "Fast Whisper",
-                    selected = backendSpeechPipeline == "fast_whisper_pipeline",
-                    onClick = { backendSpeechPipeline = "fast_whisper_pipeline" },
-                    modifier = Modifier.weight(1f),
+                SectionHeader("Backend Runtime")
+                Text(
+                    "Realtime is the recommended demo path. Fast Whisper is the advanced custom pipeline path.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                ModeButton(
-                    label = "Realtime",
-                    selected = backendSpeechPipeline == "realtime",
-                    onClick = { backendSpeechPipeline = "realtime" },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text("Pose Overlay Processor", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        "Runs the Vision Agents YOLO pose processor and exposes annotated preview frames to the React dashboard.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = backendEnablePoseProcessor,
-                    onCheckedChange = { backendEnablePoseProcessor = it },
-                )
-            }
-            MonoTextField(
-                value = backendGeminiModel,
-                onValueChange = { backendGeminiModel = it },
-                label = "Gemini Text Model",
-                placeholder = "gemini-3-flash-preview",
-            )
-            SectionHeader("Fast Whisper")
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                listOf("tiny", "base", "small").forEach { size ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     ModeButton(
-                        label = size,
-                        selected = backendFastWhisperModelSize == size,
-                        onClick = { backendFastWhisperModelSize = size },
+                        label = "Realtime",
+                        selected = isRealtimeBackendMode,
+                        onClick = { backendSpeechPipeline = "realtime" },
+                        modifier = Modifier.weight(1f),
+                    )
+                    ModeButton(
+                        label = "Fast Whisper",
+                        selected = !isRealtimeBackendMode,
+                        onClick = { backendSpeechPipeline = "fast_whisper_pipeline" },
                         modifier = Modifier.weight(1f),
                     )
                 }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ModeButton(
-                    label = "CPU",
-                    selected = backendFastWhisperDevice == "cpu",
-                    onClick = { backendFastWhisperDevice = "cpu" },
-                    modifier = Modifier.weight(1f),
-                )
-                ModeButton(
-                    label = "CUDA",
-                    selected = backendFastWhisperDevice == "cuda",
-                    onClick = { backendFastWhisperDevice = "cuda" },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            MonoTextField(
-                value = backendTurnDelayMs,
-                onValueChange = { backendTurnDelayMs = it },
-                label = "Turn Delay (ms)",
-                placeholder = "1200",
-                keyboardType = KeyboardType.Number,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text("Backend TTS", style = MaterialTheme.typography.bodyLarge)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text("Pose Overlay Processor", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Runs the Vision Agents YOLO pose processor and exposes annotated preview frames to the React dashboard.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = backendEnablePoseProcessor,
+                        onCheckedChange = { backendEnablePoseProcessor = it },
+                    )
+                }
+
+                if (isRealtimeBackendMode) {
                     Text(
-                        "If off, Android local TTS speaks backend text instead of backend PCM audio.",
+                        "Realtime mode uses Gemini native speech and vision. No custom STT, text-model, or backend TTS tuning is needed here.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                } else {
+                    SectionHeader("Fast Whisper Pipeline")
+                    Text(
+                        "These controls only apply when the backend uses Fast Whisper STT with a separate Gemini text model.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    MonoTextField(
+                        value = backendGeminiModel,
+                        onValueChange = { backendGeminiModel = it },
+                        label = "Gemini Text Model",
+                        placeholder = "gemini-3-flash-preview",
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        listOf("tiny", "base", "small").forEach { size ->
+                            ModeButton(
+                                label = size,
+                                selected = backendFastWhisperModelSize == size,
+                                onClick = { backendFastWhisperModelSize = size },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        ModeButton(
+                            label = "CPU",
+                            selected = backendFastWhisperDevice == "cpu",
+                            onClick = { backendFastWhisperDevice = "cpu" },
+                            modifier = Modifier.weight(1f),
+                        )
+                        ModeButton(
+                            label = "CUDA",
+                            selected = backendFastWhisperDevice == "cuda",
+                            onClick = { backendFastWhisperDevice = "cuda" },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    MonoTextField(
+                        value = backendTurnDelayMs,
+                        onValueChange = { backendTurnDelayMs = it },
+                        label = "Turn Delay (ms)",
+                        placeholder = "1200",
+                        keyboardType = KeyboardType.Number,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        Column {
+                            Text("Backend TTS", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "If off, Android local TTS speaks backend text instead of backend PCM audio.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = backendTtsEnabled,
+                            onCheckedChange = { backendTtsEnabled = it },
+                        )
+                    }
                 }
-                Switch(
-                    checked = backendTtsEnabled,
-                    onCheckedChange = { backendTtsEnabled = it },
-                )
             }
-
-            SectionHeader("System Prompt")
-            OutlinedTextField(
-                value = systemPrompt,
-                onValueChange = { systemPrompt = it },
-                label = { Text("System prompt") },
-                modifier = Modifier.fillMaxWidth().height(200.dp),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-            )
 
             // OpenClaw section
             SectionHeader("OpenClaw")
