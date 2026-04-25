@@ -25,6 +25,96 @@ If you are joining this repo as a teammate, start here:
 - [`mobile/CameraAccessAndroid/`](mobile/CameraAccessAndroid/) for the current Android prototype
 - [`mobile/CameraAccess/CameraAccess/WebRTC/README.md`](mobile/CameraAccess/CameraAccess/WebRTC/README.md) for the current browser-viewer path
 
+## Teammate Quick Start
+
+The fastest way to get the current backend + viewer demo running is:
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/dtseng123/droopdetection.git
+cd droopdetection
+```
+
+### 2. Create local secrets files
+
+```bash
+cp .env.example .env
+cp backend/.env.example backend/.env
+cp mobile/CameraAccessAndroid/local.properties.example mobile/CameraAccessAndroid/local.properties
+cp mobile/CameraAccessAndroid/app/src/main/java/com/meta/wearable/dat/externalsampleapps/cameraaccess/Secrets.kt.example mobile/CameraAccessAndroid/app/src/main/java/com/meta/wearable/dat/externalsampleapps/cameraaccess/Secrets.kt
+```
+
+Minimum values to fill in:
+
+- `backend/.env`
+  - `GEMINI_API_KEY=...`
+- `mobile/CameraAccessAndroid/local.properties`
+  - `github_token=...`
+- `mobile/CameraAccessAndroid/.../Secrets.kt`
+  - `geminiAPIKey = "..."`
+
+If you are using Meta DAT in Developer Mode, set:
+
+- `mwdat_application_id=0`
+
+### 3. Start the backend
+
+```bash
+make backend-setup
+make backend-dev
+```
+
+Backend health check:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+### 4. Start the React debug viewer
+
+```bash
+make viewer-install
+make viewer-dev
+```
+
+Open:
+
+```text
+http://localhost:5174
+```
+
+### 5. Run the Android app in backend mode
+
+Open:
+
+- `mobile/CameraAccessAndroid`
+
+In the app:
+
+1. Choose `Vision Agent Backend`
+2. Set the backend base URL
+   On a real phone, do not use `localhost`
+   Use something like `http://YOUR-MAC.local:8000` or your Mac's LAN IP
+3. Start streaming
+4. Open the viewer and pick the active session from the top-right session selector
+
+### 6. Expected demo path
+
+You should now have:
+
+- Android app streaming frames/audio to the Python backend
+- Vision Agent backend processing the session
+- React viewer showing the latest annotated frame, transcript HUD, processor signals, and event trace
+
+Useful commands:
+
+```bash
+make backend-test
+make backend-restart
+make backend-stop
+```
+
 ## Secrets And Tokens
 
 Start by copying the root inventory file:
