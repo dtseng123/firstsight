@@ -113,10 +113,11 @@ class VisionAgentSessionViewModel(application: Application) : AndroidViewModel(a
 
         visionAgentService.connect { setupOk ->
             if (!setupOk) {
+                val baseUrl = VisionAgentConfig.baseUrl
                 _uiState.value = _uiState.value.copy(
                     isVisionAgentActive = false,
-                    connectionState = VisionAgentConnectionState.Error("Failed to connect to Vision Agent backend"),
-                    errorMessage = "Failed to connect to Vision Agent backend",
+                    connectionState = VisionAgentConnectionState.Error("Failed to connect to Vision Agent backend at $baseUrl"),
+                    errorMessage = "Failed to connect to Vision Agent backend at $baseUrl",
                 )
                 return@connect
             }

@@ -81,15 +81,15 @@ class VisionAgentService {
         client.newCall(request).enqueue(object : okhttp3.Callback {
             override fun onFailure(call: okhttp3.Call, e: IOException) {
                 Log.e(TAG, "Session bootstrap failed", e)
-                resolveConnect(false)
                 onDisconnected?.invoke(e.message)
+                resolveConnect(false)
             }
 
             override fun onResponse(call: okhttp3.Call, response: Response) {
                 response.use {
                     if (!response.isSuccessful) {
-                        resolveConnect(false)
                         onDisconnected?.invoke("Bootstrap failed (${response.code})")
+                        resolveConnect(false)
                         return
                     }
                     val body = response.body?.string().orEmpty()
@@ -203,14 +203,14 @@ class VisionAgentService {
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "Backend websocket failure code=${response?.code}", t)
-                resolveConnect(false)
                 onDisconnected?.invoke(t.message)
+                resolveConnect(false)
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
                 Log.w(TAG, "Backend websocket closing session=$sessionId code=$code reason=$reason")
-                resolveConnect(false)
                 onDisconnected?.invoke("Connection closed ($code: $reason)")
+                resolveConnect(false)
             }
         })
     }
