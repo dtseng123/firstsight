@@ -269,16 +269,6 @@ function App() {
 
           <section className="canvas-column">
             <div className="canvas-panel">
-              <div className="canvas-toolbar">
-                <div className="telemetry-box">
-                  <span>FPS target: {selectedSession?.video_frames ? "live" : "idle"}</span>
-                  <strong>Frames {selectedSession?.video_frames || 0}</strong>
-                </div>
-                <div className="canvas-chip">audio {selectedSession?.audio_chunks || 0}</div>
-                <div className="canvas-chip">text {selectedSession?.text_messages || 0}</div>
-                <div className="canvas-chip">event {selectedSession?.last_event_type || "none"}</div>
-              </div>
-
               <div className="canvas-stage">
                 {previewFrameUrl ? (
                   <div className="canvas-preview-shell">
@@ -297,26 +287,38 @@ function App() {
                     </p>
                   </div>
                 )}
-              </div>
 
-              <section className="canvas-dock">
-                <div className="dock-card">
-                  <span className="section-label">Live Wearer</span>
-                  <p>
-                    {selectedSession?.latest_user_transcript ||
-                      latestText(selectedSession?.debug_events, "input_transcription") ||
-                      "No live user transcript."}
-                  </p>
+                <div className="canvas-hud canvas-hud-top">
+                  <div className="telemetry-box telemetry-box-compact">
+                    <span>{selectedSession?.video_frames ? "live feed" : "idle feed"}</span>
+                    <strong>{selectedSession?.video_frames || 0} frames</strong>
+                  </div>
+                  <div className="canvas-chip">audio {selectedSession?.audio_chunks || 0}</div>
+                  <div className="canvas-chip">text {selectedSession?.text_messages || 0}</div>
+                  <div className="canvas-chip">
+                    event {selectedSession?.last_event_type || "none"}
+                  </div>
                 </div>
-                <div className="dock-card">
-                  <span className="section-label">Live Agent</span>
-                  <p>
-                    {selectedSession?.latest_assistant_transcript ||
-                      latestText(selectedSession?.debug_events, "output_transcription") ||
-                      "No live assistant transcript."}
-                  </p>
+
+                <div className="canvas-hud canvas-hud-bottom">
+                  <div className="dock-card dock-card-overlay">
+                    <span className="section-label">Live Wearer</span>
+                    <p>
+                      {selectedSession?.latest_user_transcript ||
+                        latestText(selectedSession?.debug_events, "input_transcription") ||
+                        "No live user transcript."}
+                    </p>
+                  </div>
+                  <div className="dock-card dock-card-overlay">
+                    <span className="section-label">Live Agent</span>
+                    <p>
+                      {selectedSession?.latest_assistant_transcript ||
+                        latestText(selectedSession?.debug_events, "output_transcription") ||
+                        "No live assistant transcript."}
+                    </p>
+                  </div>
                 </div>
-              </section>
+              </div>
             </div>
 
             {error ? <section className="panel panel-error">{error}</section> : null}
