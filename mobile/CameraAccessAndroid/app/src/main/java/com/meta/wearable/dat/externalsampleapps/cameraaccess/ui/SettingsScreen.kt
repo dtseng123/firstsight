@@ -54,6 +54,7 @@ fun SettingsScreen(
     var backendUserId by remember { mutableStateOf(SettingsManager.backendUserId) }
     var backendUserName by remember { mutableStateOf(SettingsManager.backendUserName) }
     var backendSpeechPipeline by remember { mutableStateOf(SettingsManager.backendSpeechPipeline) }
+    var backendEnablePoseProcessor by remember { mutableStateOf(SettingsManager.backendEnablePoseProcessor) }
     var backendGeminiModel by remember { mutableStateOf(SettingsManager.backendGeminiModel) }
     var backendFastWhisperModelSize by remember { mutableStateOf(SettingsManager.backendFastWhisperModelSize) }
     var backendFastWhisperDevice by remember { mutableStateOf(SettingsManager.backendFastWhisperDevice) }
@@ -78,6 +79,7 @@ fun SettingsScreen(
         SettingsManager.backendUserId = backendUserId.trim()
         SettingsManager.backendUserName = backendUserName.trim()
         SettingsManager.backendSpeechPipeline = backendSpeechPipeline
+        SettingsManager.backendEnablePoseProcessor = backendEnablePoseProcessor
         SettingsManager.backendGeminiModel = backendGeminiModel.trim()
         SettingsManager.backendFastWhisperModelSize = backendFastWhisperModelSize
         SettingsManager.backendFastWhisperDevice = backendFastWhisperDevice
@@ -106,6 +108,7 @@ fun SettingsScreen(
         backendUserId = SettingsManager.backendUserId
         backendUserName = SettingsManager.backendUserName
         backendSpeechPipeline = SettingsManager.backendSpeechPipeline
+        backendEnablePoseProcessor = SettingsManager.backendEnablePoseProcessor
         backendGeminiModel = SettingsManager.backendGeminiModel
         backendFastWhisperModelSize = SettingsManager.backendFastWhisperModelSize
         backendFastWhisperDevice = SettingsManager.backendFastWhisperDevice
@@ -221,6 +224,24 @@ fun SettingsScreen(
                     selected = backendSpeechPipeline == "realtime",
                     onClick = { backendSpeechPipeline = "realtime" },
                     modifier = Modifier.weight(1f),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text("Pose Overlay Processor", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Runs the Vision Agents YOLO pose processor and exposes annotated preview frames to the React dashboard.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = backendEnablePoseProcessor,
+                    onCheckedChange = { backendEnablePoseProcessor = it },
                 )
             }
             MonoTextField(

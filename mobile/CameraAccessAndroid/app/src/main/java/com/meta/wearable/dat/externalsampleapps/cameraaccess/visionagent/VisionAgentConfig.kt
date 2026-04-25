@@ -14,6 +14,7 @@ object VisionAgentConfig {
 
     data class RuntimeConfig(
         val speechPipeline: String,
+        val enablePoseProcessor: Boolean,
         val geminiLlmModel: String,
         val fastWhisperModelSize: String,
         val fastWhisperDevice: String,
@@ -24,6 +25,7 @@ object VisionAgentConfig {
     val runtimeConfig: RuntimeConfig
         get() = RuntimeConfig(
             speechPipeline = SettingsManager.backendSpeechPipeline,
+            enablePoseProcessor = SettingsManager.backendEnablePoseProcessor,
             geminiLlmModel = SettingsManager.backendGeminiModel,
             fastWhisperModelSize = SettingsManager.backendFastWhisperModelSize,
             fastWhisperDevice = SettingsManager.backendFastWhisperDevice,

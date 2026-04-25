@@ -71,6 +71,7 @@ class VisionAgentService {
             put("start_agent_session", true)
             put("runtime_config", JSONObject().apply {
                 put("speech_pipeline", VisionAgentConfig.runtimeConfig.speechPipeline)
+                put("enable_pose_processor", VisionAgentConfig.runtimeConfig.enablePoseProcessor)
                 put("gemini_llm_model", VisionAgentConfig.runtimeConfig.geminiLlmModel)
                 put("fast_whisper_model_size", VisionAgentConfig.runtimeConfig.fastWhisperModelSize)
                 put("fast_whisper_device", VisionAgentConfig.runtimeConfig.fastWhisperDevice)

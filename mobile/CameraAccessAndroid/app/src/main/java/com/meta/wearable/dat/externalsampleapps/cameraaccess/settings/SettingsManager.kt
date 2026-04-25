@@ -39,8 +39,12 @@ object SettingsManager {
         set(value) = prefs.edit().putString("backendUserName", value).apply()
 
     var backendSpeechPipeline: String
-        get() = prefs.getString("backendSpeechPipeline", "fast_whisper_pipeline") ?: "fast_whisper_pipeline"
+        get() = prefs.getString("backendSpeechPipeline", "realtime") ?: "realtime"
         set(value) = prefs.edit().putString("backendSpeechPipeline", value).apply()
+
+    var backendEnablePoseProcessor: Boolean
+        get() = prefs.getBoolean("backendEnablePoseProcessor", true)
+        set(value) = prefs.edit().putBoolean("backendEnablePoseProcessor", value).apply()
 
     var backendGeminiModel: String
         get() = prefs.getString("backendGeminiModel", "gemini-3-flash-preview") ?: "gemini-3-flash-preview"
