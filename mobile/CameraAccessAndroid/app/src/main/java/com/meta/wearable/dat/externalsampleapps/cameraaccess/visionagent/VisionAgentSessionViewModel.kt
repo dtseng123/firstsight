@@ -48,6 +48,7 @@ class VisionAgentSessionViewModel(application: Application) : AndroidViewModel(a
     private val audioManager = AudioManager()
     private val speechPlayer = VisionAgentSpeechPlayer(application)
     private var lastVideoFrameTime: Long = 0
+    private var backendAudioActive = false
 
     var streamingMode: StreamingMode = StreamingMode.GLASSES
 
@@ -75,6 +76,7 @@ class VisionAgentSessionViewModel(application: Application) : AndroidViewModel(a
         }
 
         visionAgentService.onBootstrap = { bootstrap ->
+            backendAudioActive = false
             _uiState.value = _uiState.value.copy(
                 sessionId = bootstrap.sessionId,
                 callId = bootstrap.callId,
@@ -103,6 +105,10 @@ class VisionAgentSessionViewModel(application: Application) : AndroidViewModel(a
                 assistantTranscript = _uiState.value.assistantTranscript + text,
             )
         }
+        visionAgentService.onAudioReceived = { data ->
+            backendAudioActive = true
+            audioManager.playAudio(data)
+        }
         visionAgentService.onTurnComplete = {
             val current = _uiState.value
             val userText = current.userTranscript.trim()
@@ -111,7 +117,7 @@ class VisionAgentSessionViewModel(application: Application) : AndroidViewModel(a
                 val updatedHistory =
                     (current.transcriptHistory + VisionAgentTranscriptTurn(userText, assistantText))
                         .takeLast(6)
-                if (assistantText.isNotEmpty()) {
+                if (assistantText.isNotEmpty() && !backendAudioActive) {
                     speechPlayer.speak(assistantText)
                 }
                 _uiState.value = current.copy(
@@ -158,6 +164,7 @@ class VisionAgentSessionViewModel(application: Application) : AndroidViewModel(a
         speechPlayer.stop()
         visionAgentService.disconnect()
         lastVideoFrameTime = 0
+        backendAudioActive = false
         _uiState.value = VisionAgentUiState()
     }
 

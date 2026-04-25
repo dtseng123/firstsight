@@ -43,6 +43,7 @@ class VisionAgentService {
     var onDisconnected: ((String?) -> Unit)? = null
     var onInputTranscription: ((String) -> Unit)? = null
     var onOutputTranscription: ((String) -> Unit)? = null
+    var onAudioReceived: ((ByteArray) -> Unit)? = null
     var onTurnComplete: (() -> Unit)? = null
 
     private val client = OkHttpClient.Builder()
@@ -270,6 +271,16 @@ class VisionAgentService {
                 if (serverContent.optBoolean("turnComplete", false)) {
                     Log.d(TAG, "turnComplete sessionId=$activeSessionId")
                     onTurnComplete?.invoke()
+                }
+            }
+
+            if (json.has("audioOutput")) {
+                val audioOutput = json.getJSONObject("audioOutput")
+                val data = audioOutput.optString("data", "")
+                if (data.isNotEmpty()) {
+                    val decoded = Base64.decode(data, Base64.DEFAULT)
+                    Log.d(TAG, "audioOutput bytes=${decoded.size}")
+                    onAudioReceived?.invoke(decoded)
                 }
             }
         } catch (e: Exception) {
