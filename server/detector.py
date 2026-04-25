@@ -1,10 +1,7 @@
-import sys
 from pathlib import Path
 import torch
 import numpy as np
 import cv2
-
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "heart_rate_detection"))
 
 from detector.darknet import Darknet
 from utils.general import non_max_suppression, scale_coords
