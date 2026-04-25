@@ -32,6 +32,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -70,7 +73,7 @@ fun StreamScreen(
     visionAgentViewModel: VisionAgentSessionViewModel = viewModel(),
     webrtcViewModel: WebRTCSessionViewModel = viewModel(),
 ) {
-    val aiMode = SettingsManager.aiBackendMode
+    var aiMode by remember { mutableStateOf(SettingsManager.aiBackendMode) }
     val streamUiState by streamViewModel.uiState.collectAsStateWithLifecycle()
     val geminiUiState by geminiViewModel.uiState.collectAsStateWithLifecycle()
     val visionAgentUiState by visionAgentViewModel.uiState.collectAsStateWithLifecycle()
@@ -188,6 +191,23 @@ fun StreamScreen(
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                AiModeSwitcher(
+                    mode = aiMode,
+                    onModeSelected = { selectedMode ->
+                        if (selectedMode != aiMode) {
+                            if (geminiUiState.isGeminiActive) {
+                                geminiViewModel.stopSession()
+                            }
+                            if (visionAgentUiState.isVisionAgentActive) {
+                                visionAgentViewModel.stopSession()
+                            }
+                            geminiViewModel.clearDetectionOverlay()
+                            SettingsManager.aiBackendMode = selectedMode
+                            aiMode = selectedMode
+                        }
+                    },
+                )
 
                 // Gemini overlay
                 if (aiMode == VisionAgentMode.DIRECT_GEMINI && geminiUiState.isGeminiActive) {

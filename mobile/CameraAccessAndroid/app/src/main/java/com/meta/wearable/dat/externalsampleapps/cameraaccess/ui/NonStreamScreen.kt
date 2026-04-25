@@ -78,7 +78,7 @@ fun NonStreamScreen(
   val isDisconnectEnabled = uiState.registrationState is RegistrationState.Registered
   val activity = LocalActivity.current
   val context = LocalContext.current
-  val aiMode = SettingsManager.aiBackendMode
+  var aiMode by remember { mutableStateOf(SettingsManager.aiBackendMode) }
 
   MaterialTheme(colorScheme = darkColorScheme()) {
     Box(
@@ -163,6 +163,13 @@ fun NonStreamScreen(
           verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {
         AiModeBadge(mode = aiMode)
+        AiModeSwitcher(
+            mode = aiMode,
+            onModeSelected = { selectedMode ->
+              aiMode = selectedMode
+              SettingsManager.aiBackendMode = selectedMode
+            },
+        )
 
         if (!uiState.hasActiveDevice) {
           Row(
