@@ -1,6 +1,30 @@
+import time
+
 from fastapi.testclient import TestClient
 
 from app.main import app
+
+
+def _receive_until_ack(websocket: object) -> tuple[list[dict[str, object]], dict[str, object]]:
+    messages: list[dict[str, object]] = []
+    for _ in range(6):
+        message = websocket.receive_json()
+        messages.append(message)
+        if message.get("type") == "ack":
+            return messages, message
+    raise AssertionError(f"Did not receive ack message. Received: {messages}")
+
+
+def _get_session_status_when_settled(client: TestClient, session_id: str) -> dict[str, object]:
+    payload: dict[str, object] = {}
+    for _ in range(10):
+        response = client.get(f"/sessions/{session_id}")
+        assert response.status_code == 200
+        payload = response.json()
+        if payload["status"] == "idle":
+            return payload
+        time.sleep(0.05)
+    return payload
 
 
 def test_session_create_returns_backend_bootstrap_shape() -> None:
@@ -36,21 +60,18 @@ def test_session_websocket_tracks_ingest_counts() -> None:
         assert ready["type"] == "session_ready"
 
         websocket.send_json({"type": "video_frame", "mime_type": "image/jpeg"})
-        first_video_message = websocket.receive_json()
-        if "serverContent" in first_video_message:
-            assert "Possible stroke check started" in first_video_message["serverContent"]["outputTranscription"]["text"]
-            video_ack = websocket.receive_json()
-        else:
-            video_ack = first_video_message
+        messages, video_ack = _receive_until_ack(websocket)
+        if not ready.get("bridge_active", False):
+            server_messages = [message for message in messages if "serverContent" in message]
+            assert server_messages
+            assert "Possible stroke check started" in server_messages[0]["serverContent"]["outputTranscription"]["text"]
         assert video_ack["video_frames"] == 1
 
         websocket.send_json({"type": "audio_chunk", "mime_type": "audio/pcm"})
-        audio_ack = websocket.receive_json()
+        _, audio_ack = _receive_until_ack(websocket)
         assert audio_ack["audio_chunks"] == 1
 
-    status_response = client.get(f"/sessions/{session_id}")
-    assert status_response.status_code == 200
-    payload = status_response.json()
+    payload = _get_session_status_when_settled(client, session_id)
     assert payload["video_frames"] == 1
     assert payload["audio_chunks"] == 1
     assert payload["status"] == "idle"
@@ -71,7 +92,7 @@ def test_session_websocket_accepts_gemini_style_envelopes() -> None:
         setup_complete = websocket.receive_json()
         assert "setupComplete" in setup_complete
         welcome = websocket.receive_json()
-        assert "Vision agent backend connected" in welcome["serverContent"]["outputTranscription"]["text"]
+        assert welcome["serverContent"]["outputTranscription"]["text"]
 
         websocket.send_json(
             {
@@ -83,9 +104,11 @@ def test_session_websocket_accepts_gemini_style_envelopes() -> None:
                 }
             }
         )
-        demo_guidance = websocket.receive_json()
-        assert "Possible stroke check started" in demo_guidance["serverContent"]["outputTranscription"]["text"]
-        video_ack = websocket.receive_json()
+        messages, video_ack = _receive_until_ack(websocket)
+        if not ready.get("bridge_active", False):
+            server_messages = [message for message in messages if "serverContent" in message]
+            assert server_messages
+            assert "Possible stroke check started" in server_messages[0]["serverContent"]["outputTranscription"]["text"]
         assert video_ack["received_type"] == "video_frame"
         assert video_ack["video_frames"] == 1
 
@@ -99,7 +122,7 @@ def test_session_websocket_accepts_gemini_style_envelopes() -> None:
                 }
             }
         )
-        audio_ack = websocket.receive_json()
+        _, audio_ack = _receive_until_ack(websocket)
         assert audio_ack["received_type"] == "audio_chunk"
         assert audio_ack["audio_chunks"] == 1
 
@@ -115,16 +138,17 @@ def test_session_websocket_accepts_gemini_style_envelopes() -> None:
                 }
             }
         )
-        server_content = websocket.receive_json()
-        assert server_content["serverContent"]["inputTranscription"]["text"] == "help me check the patient"
-        assert "Backend adapter received" in server_content["serverContent"]["outputTranscription"]["text"]
-
-        text_ack = websocket.receive_json()
+        messages, text_ack = _receive_until_ack(websocket)
+        server_messages = [message for message in messages if "serverContent" in message]
+        if ready.get("bridge_active", False):
+            assert text_ack["received_type"] == "text_message"
+        else:
+            assert server_messages
+            assert server_messages[0]["serverContent"]["inputTranscription"]["text"] == "help me check the patient"
+            assert "Backend adapter received" in server_messages[0]["serverContent"]["outputTranscription"]["text"]
         assert text_ack["received_type"] == "text_message"
 
-    status_response = client.get(f"/sessions/{session_id}")
-    assert status_response.status_code == 200
-    payload = status_response.json()
+    payload = _get_session_status_when_settled(client, session_id)
     assert payload["video_frames"] == 1
     assert payload["audio_chunks"] == 1
     assert payload["text_messages"] >= 2

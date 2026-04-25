@@ -149,7 +149,16 @@ class VisionSessionBridge:
                 len(image_bytes),
             )
 
-        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        try:
+            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        except Exception:
+            logger.warning(
+                "bridge invalid video frame session_id=%s bytes=%s",
+                self.session_id,
+                len(image_bytes),
+                exc_info=True,
+            )
+            return
         frame = av.VideoFrame.from_image(image)
         await self._video_track.add_frame(frame)
 

@@ -471,6 +471,6 @@ async def stream_session(websocket: WebSocket, session_id: str) -> None:
     except WebSocketDisconnect:
         logger.info("stream_session disconnected session_id=%s", session_id)
     finally:
-        await vision_bridge_manager.close(session_id)
         session_manager.disconnect(session_id)
+        await vision_bridge_manager.close(session_id)
         logger.info("stream_session closed session_id=%s", session_id)

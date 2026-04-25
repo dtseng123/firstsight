@@ -16,11 +16,17 @@ def build_realtime_llm(settings: Settings) -> object:
     if settings.realtime_provider == "openai":
         from vision_agents.plugins import openai
 
-        return openai.Realtime(fps=settings.realtime_video_fps)
+        return openai.Realtime(
+            fps=settings.realtime_video_fps,
+            api_key=settings.openai_api_key or None,
+        )
 
     from vision_agents.plugins import gemini
 
-    return gemini.Realtime(fps=settings.realtime_video_fps)
+    return gemini.Realtime(
+        fps=settings.realtime_video_fps,
+        api_key=settings.gemini_api_key or None,
+    )
 
 
 def build_agent(settings: Settings | None = None) -> object:
@@ -39,4 +45,3 @@ def build_agent(settings: Settings | None = None) -> object:
         llm=llm,
         processors=list(processors),
     )
-
