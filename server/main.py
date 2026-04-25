@@ -10,11 +10,12 @@ import uvicorn
 
 BASE = Path(__file__).parent.parent
 sys.path.insert(0, str(BASE / "vendor"))
-sys.path.insert(0, str(BASE))
 
 from server.detector import HeadDetector
 from server.tracker import HeadTracker
 from server.pipeline import HeartRatePipeline
+
+TRACKER_CONFIG = str(BASE / "config/deep_sort.yaml")
 
 
 @asynccontextmanager
@@ -24,7 +25,6 @@ async def lifespan(app: FastAPI):
         weights_path=str(BASE / "weights/yolor_head.pt"),
         device="cpu",
     )
-    app.state.tracker = HeadTracker(config_path=str(BASE / "config/deep_sort.yaml"))
     yield
 
 
@@ -38,11 +38,14 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         pipeline = HeartRatePipeline(
             detector=websocket.app.state.detector,
-            tracker=websocket.app.state.tracker,
+            tracker=HeadTracker(config_path=TRACKER_CONFIG),
             mode=mode,
         )
     except ValueError as e:
         await websocket.close(code=1008, reason=str(e))
+        return
+    except Exception:
+        await websocket.close(code=1011, reason="Internal error")
         return
 
     try:
@@ -60,6 +63,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 }))
     except WebSocketDisconnect:
         pass
+    except Exception:
+        await websocket.close(code=1011, reason="Internal error")
 
 
 if __name__ == "__main__":
