@@ -5,7 +5,7 @@
 A smart-glasses first-aid guidance system. Point the glasses (or your phone/laptop camera) at a patient — the backend runs two real-time CV models and an AI voice agent that talks you through what it sees:
 
 - **Facial droop** — detects stroke-related asymmetry using MediaPipe landmarks + EfficientNet-B0
-- **Heart rate** — contactless rPPG from skin colour (YOLOR head detection + CHROM/POS ensemble, no contact needed)
+- **Heart rate** — contactless remote photoplethysmography (rPPG) from skin colour (YOLOR head detection + CHROM/POS ensemble, no contact needed)
 - **Voice guidance** — Gemini agent backed by JRCALC 2022 clinical guidelines RAG
 
 **Supported platforms:** browser webcam, iOS (iPhone), Android, Meta Ray-Ban glasses.
@@ -16,7 +16,7 @@ A smart-glasses first-aid guidance system. Point the glasses (or your phone/lapt
 Point the glasses at someone's face. FirstSight runs a MediaPipe landmark extractor and an EfficientNet-B0 model on every frame, scoring mouth, eye, and brow asymmetry in real time. Asymmetric faces — a key FAST indicator — are flagged immediately, with severity graded `none / mild / severe`. AUROC 0.985 on held-out test data.
 
 ### Measure heart rate without touching anyone
-The rPPG pipeline picks up the ~1% colour change skin makes with each heartbeat. No sensor. No contact. Works across skin tones — a CHROM/POS ensemble automatically selects the algorithm with the stronger signal, so darker Fitzpatrick types aren't misread. Alerts fire for bradycardia, tachycardia, and critical ranges (<40 or >180 BPM) after a sustained window to suppress false alarms.
+The remote photoplethysmography (rPPG) pipeline picks up the ~1% colour change skin makes with each heartbeat. No sensor. No contact. Works across skin tones — a CHROM/POS ensemble automatically selects the algorithm with the stronger signal, so darker Fitzpatrick types aren't misread. Alerts fire for bradycardia, tachycardia, and critical ranges (<40 or >180 BPM) after a sustained window to suppress false alarms.
 
 ### Talk you through what to do
 A Gemini voice agent backed by JRCALC 2022 clinical guidelines listens, watches, and speaks — walking you step by step through stroke assessment, CPR, choking response, and more. It correlates what the CV models see with what you say to surface the right protocol at the right moment.
