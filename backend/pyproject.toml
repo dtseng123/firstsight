@@ -15,7 +15,19 @@ dependencies = [
   "uvicorn[standard]>=0.30,<1.0",
   "vision-agents[elevenlabs,fast-whisper,gemini,getstream,openai,ultralytics]>=0.5.4,<1.0",
   "pydantic-ai>=0.1,<1.0",
-  "logfire[fastapi,pydantic-ai]>=3.0,<5.0"
+  "logfire[fastapi,pydantic-ai]>=3.0,<5.0",
+  "onnxruntime>=1.18,<2.0",
+  "mediapipe>=0.10,<1.0",
+  "google-genai>=1.0",
+  "faiss-cpu>=1.8",
+  "networkx>=3.3",
+  "ebooklib>=0.18",
+  "beautifulsoup4>=4.12",
+  "tiktoken>=0.7",
+  "lxml>=5.0",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "opencv-python-headless>=4.8"
 ]
 
 [project.optional-dependencies]
@@ -30,6 +42,11 @@ package-dir = {"" = "."}
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["app*"]
+
+[tool.uv]
+# mediapipe declares protobuf<5 but works fine at runtime with protobuf 7.x.
+# This override keeps protobuf at the version getstream requires.
+constraint-dependencies = ["protobuf>=6.31.1"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

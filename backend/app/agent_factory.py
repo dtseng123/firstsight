@@ -1,6 +1,11 @@
-from collections.abc import Sequence
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable, Sequence
 
 from .config import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 
 def _build_processors(settings: Settings, *, session_id: str | None = None) -> list[object]:
@@ -21,7 +26,25 @@ def _build_processors(settings: Settings, *, session_id: str | None = None) -> l
     if settings.enable_face_droop_processor:
         from .processors.face_droop import FaceDroopProcessor
 
-        processors.append(FaceDroopProcessor(fps=settings.processor_fps))
+        processors.append(
+            FaceDroopProcessor(
+                session_id=session_id or "preview",
+                fps=settings.processor_fps,
+                model_path=settings.droop_model_path_resolved(),
+                threshold_path=settings.droop_threshold_path_resolved(),
+                face_landmarker_path=settings.droop_face_landmarker_path_resolved(),
+                image_size=settings.droop_image_size,
+            )
+        )
+    if settings.enable_heart_rate_processor:
+        from .processors.heart_rate import HeartRateProcessor
+
+        processors.append(
+            HeartRateProcessor(
+                fps=settings.heart_rate_fps,
+                mode=settings.heart_rate_mode,
+            )
+        )
     return processors
 
 
@@ -75,6 +98,45 @@ def build_tts(settings: Settings) -> object | None:
         voice_id=settings.elevenlabs_voice_id,
         model_id=settings.elevenlabs_model_id,
     )
+
+
+def _build_embed_fn(settings: Settings) -> Callable[[list[str]], list[list[float]]]:
+    from google import genai
+
+    client = genai.Client(api_key=settings.gemini_api_key)
+
+    def embed(texts: list[str]) -> list[list[float]]:
+        result = client.models.embed_content(
+            model="gemini-embedding-001",
+            contents=texts,
+        )
+        return [list(e.values) for e in result.embeddings]
+
+    return embed
+
+
+def build_retriever(settings: Settings) -> object | None:
+    if not settings.rag_enabled:
+        return None
+    try:
+        from .rag.graph import ClinicalGraph
+        from .rag.index import FaissIndex
+        from .rag.retriever import GraphRetriever
+
+        embed_fn = _build_embed_fn(settings)
+        graph = ClinicalGraph.load(settings.rag_index_dir)
+        index = FaissIndex.load(settings.rag_index_dir)
+        logger.info(
+            "rag retriever loaded index_dir=%s nodes=%s vectors=%s top_k=%s",
+            settings.rag_index_dir,
+            graph.node_count(),
+            index.total(),
+            settings.rag_top_k,
+        )
+        return GraphRetriever(graph, index, embed_fn, top_k=settings.rag_top_k)
+    except Exception:
+        logger.exception("rag retriever failed to load index_dir=%s", settings.rag_index_dir)
+        return None
 
 
 def build_agent(settings: Settings | None = None) -> object:
