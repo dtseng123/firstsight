@@ -1,0 +1,45 @@
+{
+  "id": "aed_retrieval",
+  "title": "AED Retrieval And Use Prep",
+  "summary": "Use when the user needs help locating an AED and preparing to use it during suspected cardiac arrest.",
+  "severity": "high",
+  "incident_type": "aed_support",
+  "search_terms": ["find AED", "defibrillator", "defib", "cardiac arrest", "CPR AED"],
+  "activation_triggers": ["find AED", "defibrillator", "AED", "cardiac arrest"],
+  "step_details": {
+    "confirm_someone_is_calling_emergency_services_now": {
+      "kind": "decision",
+      "speak_before": "Confirm that someone is calling emergency services right now.",
+      "agent_hint": "Do not start scene-search guidance until emergency services have been addressed."
+    },
+    "ask_a_bystander_to_bring_the_nearest_aed_immediately": {
+      "kind": "user_action",
+      "speak_before": "Ask a nearby bystander to bring the nearest AED immediately.",
+      "agent_hint": "If no bystander is available, tell the wearer they may need to move the camera to search the scene."
+    },
+    "use_scene_understanding_to_help_locate_a_visible_aed_or_likely_cabinet": {
+      "kind": "agent_tool_call",
+      "speak_before": "Slowly pan the camera across the room and nearby walls so I can look for an AED or cabinet.",
+      "agent_hint": "Use a spatial tool to look for a visible AED, defibrillator cabinet, or emergency equipment location hint. If none is visible, say that clearly and ask for a wider scan.",
+      "tool_name": "box_query",
+      "tool_prompt": "Search the current scene for a visible AED, defibrillator case, emergency cabinet, or strong candidate that likely contains an AED. Return labeled boxes and uncertainty if nothing is clearly visible.",
+      "advance_when": "the spatial tool identifies a likely AED location or the agent says no AED is visible yet",
+      "requires_user_confirmation": true
+    },
+    "keep_cpr_going_while_another_person_gets_the_aed": {
+      "kind": "decision",
+      "speak_before": "Keep CPR going while another person retrieves the AED.",
+      "agent_hint": "Remind the wearer not to stop compressions unnecessarily."
+    },
+    "turn_on_the_aed_as_soon_as_it_arrives_and_follow_its_voice_prompts": {
+      "kind": "user_action",
+      "speak_before": "Turn on the AED as soon as it arrives and follow its voice prompts.",
+      "agent_hint": "Keep this instruction short and procedural."
+    },
+    "resume_cpr_immediately_after_a_shock_or_if_no_shock_is_advised": {
+      "kind": "decision",
+      "speak_before": "Resume CPR immediately after a shock or if the AED says no shock is advised.",
+      "agent_hint": "Use this as the final reinforcement step."
+    }
+  }
+}

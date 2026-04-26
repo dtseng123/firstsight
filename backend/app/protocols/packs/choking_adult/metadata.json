@@ -1,0 +1,45 @@
+{
+  "id": "choking_adult",
+  "title": "Adult Choking Response",
+  "summary": "Use when a person may have an airway blockage, cannot speak well, or shows the universal choking sign.",
+  "severity": "high",
+  "incident_type": "choking_concern",
+  "search_terms": ["choking", "airway blocked", "cannot speak", "hands to throat", "gagging"],
+  "activation_triggers": ["choking", "can't breathe", "cannot speak", "hands to throat", "gasping"],
+  "step_details": {
+    "ask_if_the_person_can_cough_or_speak": {
+      "kind": "user_action",
+      "speak_before": "Ask the patient if they can cough or speak.",
+      "agent_hint": "This is the first quick screening question; keep it short."
+    },
+    "if_they_cannot_breathe_or_speak_well_call_emergency_services_now": {
+      "kind": "decision",
+      "speak_before": "If they cannot breathe or cannot speak well, call emergency services now.",
+      "agent_hint": "Make the escalation immediate if the airway sounds severely blocked."
+    },
+    "encourage_coughing_if_they_can_still_cough_forcefully": {
+      "kind": "user_action",
+      "speak_before": "If they can still cough forcefully, encourage them to keep coughing.",
+      "agent_hint": "Do not overcomplicate this step."
+    },
+    "if_they_cannot_cough_or_speak_begin_choking_first_aid_per_local_training": {
+      "kind": "user_action",
+      "speak_before": "If they cannot cough or speak, begin choking first aid according to your local training.",
+      "agent_hint": "Stay procedural and do not invent unsupported medical details."
+    },
+    "run_airway_or_mouth_obstruction_check_if_a_clear_view_is_available": {
+      "kind": "agent_tool_call",
+      "speak_before": "If you can safely get a clear view, hold the camera on the mouth area for a moment.",
+      "agent_hint": "Use a visual reasoning tool only if the mouth or airway area is visible enough. Otherwise say the view is unclear and ask for repositioning.",
+      "tool_name": "spatial_query",
+      "tool_prompt": "Assess whether there appears to be a visible mouth or airway obstruction in the current view. Return whether an obstruction is visible, no clear obstruction is visible, or the view is too unclear to tell.",
+      "advance_when": "the agent summarizes whether an obstruction is visible or the view is unclear",
+      "requires_user_confirmation": true
+    },
+    "if_the_person_becomes_unresponsive_switch_to_cpraed_guidance_immediately": {
+      "kind": "decision",
+      "speak_before": "If the patient becomes unresponsive, switch immediately to CPR and AED guidance.",
+      "agent_hint": "Use this as the escalation branch out of the choking flow."
+    }
+  }
+}

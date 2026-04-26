@@ -42,6 +42,12 @@ class ChecklistItemResponse(BaseModel):
     kind: str
     status: str
     source_protocol_id: str | None = None
+    agent_hint: str | None = None
+    speak_before: str | None = None
+    tool_name: str | None = None
+    tool_prompt: str | None = None
+    advance_when: str | None = None
+    requires_user_confirmation: bool = False
 
 
 class ChecklistTemplateItemResponse(BaseModel):
@@ -49,6 +55,12 @@ class ChecklistTemplateItemResponse(BaseModel):
     label: str
     kind: str
     required: bool
+    agent_hint: str | None = None
+    speak_before: str | None = None
+    tool_name: str | None = None
+    tool_prompt: str | None = None
+    advance_when: str | None = None
+    requires_user_confirmation: bool = False
 
 
 class ProtocolHitResponse(BaseModel):

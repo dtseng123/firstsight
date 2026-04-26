@@ -1,0 +1,44 @@
+{
+  "id": "cpr_unresponsive_adult",
+  "title": "Adult CPR For Unresponsive Person",
+  "severity": "high",
+  "incident_type": "cpr_emergency",
+  "search_terms": ["cpr", "unresponsive", "not breathing", "adult cpr", "chest compressions"],
+  "activation_triggers": ["cpr", "unresponsive", "not breathing", "collapsed"],
+  "step_details": {
+    "check_that_the_scene_is_safe_for_you_and_the_patient": {
+      "kind": "decision",
+      "speak_before": "Check that the scene is safe before you touch the patient.",
+      "agent_hint": "Keep the instruction brief and do not advance until the wearer confirms it is safe."
+    },
+    "tap_the_person_and_shout_to_check_responsiveness": {
+      "kind": "user_action",
+      "speak_before": "Tap the patient and shout to check if they respond.",
+      "agent_hint": "Tell the wearer to keep the camera on the patient while they check."
+    },
+    "check_breathing_quickly": {
+      "kind": "agent_check",
+      "speak_before": "Look at the chest and face and check breathing quickly.",
+      "agent_hint": "Use the live scene and pose context to help the wearer assess whether the patient appears motionless or not breathing normally.",
+      "tool_name": "spatial_query",
+      "tool_prompt": "Assess whether the patient appears to be lying down, motionless, and not showing obvious normal breathing from the current frame or recent scene context. Return a structured result with uncertainty if the view is insufficient.",
+      "advance_when": "the agent explains whether the patient appears motionless or the breathing view is unclear",
+      "requires_user_confirmation": true
+    },
+    "call_emergency_services_or_direct_someone_nearby_to_call": {
+      "kind": "decision",
+      "speak_before": "Call emergency services now or direct a nearby bystander to call immediately.",
+      "agent_hint": "Escalate clearly before compressions if help has not already been summoned."
+    },
+    "begin_chest_compressions_if_the_person_is_not_breathing_normally": {
+      "kind": "user_action",
+      "speak_before": "If the patient is not breathing normally, begin chest compressions now.",
+      "agent_hint": "Keep the wording direct and action-focused."
+    },
+    "use_an_aed_if_one_is_available": {
+      "kind": "decision",
+      "speak_before": "If an AED is available, get it immediately and follow its prompts.",
+      "agent_hint": "Recommend switching to the AED retrieval procedure if the wearer needs help locating one."
+    }
+  }
+}
