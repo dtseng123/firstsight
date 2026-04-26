@@ -63,6 +63,30 @@ Live ingest smoke test:
 make smoke-stream
 ```
 
+## Observability (Logfire)
+
+The backend is instrumented with [Pydantic Logfire](https://logfire.pydantic.dev) for tracing FastAPI requests and pydantic-ai agent calls.
+
+### First-time setup
+
+1. Create an org at [logfire.pydantic.dev](https://logfire.pydantic.dev)
+2. Authenticate the CLI:
+
+```bash
+pip install logfire
+logfire auth
+```
+
+3. Create a project inside your org (one-time):
+
+```bash
+logfire projects new droopdetection
+```
+
+4. On first `make dev`, logfire will pick up the linked project and start sending traces automatically.
+
+If no project is linked, logfire falls back to a local no-op mode — the backend still runs, you just won't see traces.
+
 ## Notes
 
 - Use Python `3.11` to `3.13`. `vision-agents` currently pulls native dependencies that are not smooth on Python `3.14`.

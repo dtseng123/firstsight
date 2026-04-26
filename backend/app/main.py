@@ -1,11 +1,14 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import logfire
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routes import router
 from .vision_runtime import vision_runtime
+
+logfire.configure()
 
 
 @asynccontextmanager
@@ -29,6 +32,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router)
+    logfire.instrument_fastapi(app)
     return app
 
 
