@@ -62,7 +62,7 @@ The system correctly reads 0.00 on a symmetric face and jumps to 0.86 on an exag
 
 If you are joining this repo as a teammate, start here:
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) for the backend data-flow design
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the backend data-flow design
 - [`backend/`](backend/) for the Python service
 - [`viewer/`](viewer/) for the React debug dashboard
 - [`mobile/CameraAccess/`](mobile/CameraAccess/) for the iOS prototype

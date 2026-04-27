@@ -1,5 +1,6 @@
 import math
 import os
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -103,11 +104,11 @@ def attempt_download(weights):
         # download from pjreddie.com as fallback
         url = 'https://pjreddie.com/media/files/' + file
         print('Downloading ' + url)
-        r = os.system('curl -f ' + url + ' -o ' + weights)
+        r = subprocess.run(['curl', '-f', url, '-o', weights]).returncode
 
         # Error check
         if not (r == 0 and os.path.exists(weights) and os.path.getsize(weights) > 1E6):  # weights exist and > 1MB
-            os.system('rm ' + weights)  # remove partial downloads
+            Path(weights).unlink(missing_ok=True)  # remove partial downloads
             raise Exception(msg)
 
 

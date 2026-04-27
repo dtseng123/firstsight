@@ -21,6 +21,7 @@ Environment:
 
 from __future__ import annotations
 
+import hmac
 import json
 import os
 import base64
@@ -118,7 +119,7 @@ class VisionToolHandler(BaseHTTPRequestHandler):
         if AUTH_TOKEN:
             header = self.headers.get("Authorization", "")
             expected = f"Bearer {AUTH_TOKEN}"
-            if header != expected:
+            if not hmac.compare_digest(header, expected):
                 self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
                 return
 
@@ -141,7 +142,7 @@ class VisionToolHandler(BaseHTTPRequestHandler):
         if AUTH_TOKEN:
             header = self.headers.get("Authorization", "")
             expected = f"Bearer {AUTH_TOKEN}"
-            if header != expected:
+            if not hmac.compare_digest(header, expected):
                 self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
                 return
         try:
@@ -164,7 +165,7 @@ class VisionToolHandler(BaseHTTPRequestHandler):
         if AUTH_TOKEN:
             header = self.headers.get("Authorization", "")
             expected = f"Bearer {AUTH_TOKEN}"
-            if header != expected:
+            if not hmac.compare_digest(header, expected):
                 self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
                 return
         try:
@@ -185,7 +186,7 @@ class VisionToolHandler(BaseHTTPRequestHandler):
         if AUTH_TOKEN:
             header = self.headers.get("Authorization", "")
             expected = f"Bearer {AUTH_TOKEN}"
-            if header != expected:
+            if not hmac.compare_digest(header, expected):
                 self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
                 return
         try:
@@ -206,7 +207,7 @@ class VisionToolHandler(BaseHTTPRequestHandler):
         if AUTH_TOKEN:
             header = self.headers.get("Authorization", "")
             expected = f"Bearer {AUTH_TOKEN}"
-            if header != expected:
+            if not hmac.compare_digest(header, expected):
                 self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
                 return
         try:
@@ -226,7 +227,7 @@ class VisionToolHandler(BaseHTTPRequestHandler):
         if AUTH_TOKEN:
             header = self.headers.get("Authorization", "")
             expected = f"Bearer {AUTH_TOKEN}"
-            if header != expected:
+            if not hmac.compare_digest(header, expected):
                 self._send_json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
                 return
         try:
