@@ -98,8 +98,8 @@ The fastest way to see both models running — no mobile hardware required.
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/dtseng123/droopdetection.git
-cd droopdetection
+git clone https://github.com/dtseng123/firstsight.git
+cd firstsight
 cp backend/.env.example backend/.env   # then set GEMINI_API_KEY
 ```
 
@@ -498,8 +498,8 @@ Set `RAG_ENABLED=false` (or omit it entirely — it defaults to `false`). The re
 ### 1. Clone and open
 
 ```bash
-git clone https://github.com/dtseng123/droopdetection.git
-cd droopdetection/mobile/CameraAccess
+git clone https://github.com/dtseng123/firstsight.git
+cd firstsight/mobile/CameraAccess
 open CameraAccess.xcodeproj
 ```
 
@@ -547,7 +547,7 @@ Then in the iOS app:
 ### 1. Clone and open
 
 ```bash
-git clone https://github.com/dtseng123/droopdetection.git
+git clone https://github.com/dtseng123/firstsight.git
 ```
 
 Open `mobile/CameraAccessAndroid/` in Android Studio.
