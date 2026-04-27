@@ -21,7 +21,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="droopdetection-backend",
+        title="firstsight-backend",
         version="0.1.0",
         summary="Minimal backend scaffold for the smart-glasses realtime agent platform.",
         lifespan=lifespan,

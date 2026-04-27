@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "droopdetection-backend"
+name = "firstsight-backend"
 version = "0.1.0"
-description = "Minimal FastAPI and Vision Agents scaffold for the droopdetection backend."
+description = "Minimal FastAPI and Vision Agents scaffold for the firstsight backend."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [

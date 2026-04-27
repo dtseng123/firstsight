@@ -60,6 +60,27 @@ The system correctly reads 0.00 on a symmetric face and jumps to 0.86 on an exag
 
 ---
 
+## Capability Targets
+
+What FirstSight can detect today, and what's on the roadmap.
+
+| | Condition | CV signals | Why it matters |
+|---|---|---|---|
+| ☑️ | **Stroke warning signs** | Facial droop/asymmetry, abnormal smile, arm drift (prompted), gaze deviation, balance problems | Facial weakness, arm weakness, speech trouble, vision problems, dizziness, or severe headache are FAST stroke indicators |
+| ☑️ | **Cardiac arrest / collapse** | Person collapses, becomes motionless, abnormal/no breathing, no response to prompts | Suspected cardiac arrest requires immediate emergency services, CPR, and AED use |
+| ☐ | **Seizure / convulsion** | Repetitive uncontrolled limb/body movements, loss of posture, fall, prolonged immobility afterward | Useful for home monitoring, elder care, epilepsy support, and workplace safety |
+| ☐ | **Severe breathing distress** | Very fast breathing, labored chest/neck movement, gasping, inability to speak full sentences, tripod posture | Difficulty breathing, breathlessness, or very fast breathing are emergency red flags |
+| ☐ | **Cyanosis / dangerous colour change** | Blue, grey, pale, or blotchy lips/skin/tongue; palms/soles for darker skin tones | Can indicate severe oxygen, breathing, or circulation failure |
+| ☐ | **Anaphylaxis / severe allergic reaction** | Swollen lips/face/eyes, hives/rash, visible throat or facial swelling, breathing difficulty posture | Suspected anaphylaxis may require epinephrine and emergency services |
+| ☐ | **Meningitis / sepsis rash check** | Non-blanching rash (guided glass test), mottled skin, lethargic posture | A rash that does not fade when pressed can be an emergency warning sign |
+| ☐ | **Falls with no recovery** | Fall event, impact, failure to get up, long immobility, abnormal posture | High-value for elderly care, bathrooms, care homes, and factories |
+| ☐ | **Choking** | Hands-to-throat gesture, panic posture, inability to speak, coughing/gagging motion, cyanosis | Useful in restaurants, care homes, nurseries, and smart-home cameras |
+| ☐ | **Heat stroke / severe heat illness** | Collapse in hot setting, confusion-like behaviour, staggering gait, flushed skin, reduced responsiveness | CV alone is weak; strongest combined with temperature/humidity sensors and wearable data |
+| ☐ | **Diabetic emergency / altered consciousness** | Sudden collapse, confusion-like movement, inability to respond, sweating/pallor if visible | CV cannot identify the diabetic cause but can escalate "person unresponsive or altered" |
+| ☐ | **Infant distress monitoring** | Abnormal breathing pauses, blue lips, unusual limpness, choking-like motion, unsafe sleep posture | High-value but high-risk — requires careful validation and must never falsely reassure caregivers |
+
+---
+
 If you are joining this repo as a teammate, start here:
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) for the backend data-flow design
