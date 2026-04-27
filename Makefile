@@ -1,10 +1,12 @@
 BACKEND_DIR := backend
 VIEWER_DIR := viewer
 
-.PHONY: help backend-setup backend-dev backend-stop backend-restart backend-test backend-example backend-smoke-stream backend-clean viewer-install viewer-dev viewer-build
+.PHONY: help dev stop backend-setup backend-dev backend-stop backend-restart backend-test backend-example backend-smoke-stream backend-clean viewer-install viewer-dev viewer-build
 
 help:
 	@echo "Targets:"
+	@echo "  make dev             Start backend + viewer together (Ctrl-C to stop both)"
+	@echo "  make stop            Stop backend and viewer"
 	@echo "  make backend-setup   Create the backend venv, install deps, and seed .env"
 	@echo "  make backend-dev     Run the FastAPI backend locally"
 	@echo "  make backend-stop    Stop the local FastAPI backend"
@@ -16,6 +18,16 @@ help:
 	@echo "  make viewer-install  Install the React debug viewer dependencies"
 	@echo "  make viewer-dev      Run the React debug viewer locally"
 	@echo "  make viewer-build    Build the React debug viewer"
+
+dev:
+	@trap 'kill 0' INT; \
+	$(MAKE) -C $(BACKEND_DIR) dev & \
+	(cd $(VIEWER_DIR) && npm run dev) & \
+	wait
+
+stop:
+	@$(MAKE) -C $(BACKEND_DIR) stop
+	@-lsof -ti :5174 | xargs kill 2>/dev/null; true
 
 backend-setup:
 	@$(MAKE) -C $(BACKEND_DIR) setup
